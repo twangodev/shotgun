@@ -2,28 +2,37 @@
 import React from 'react';
 import {render} from 'ink';
 import meow from 'meow';
-import App from './app.js';
+import {App} from './cli/App.js';
 
-const cli = meow(
+meow(
 	`
 	Usage
 	  $ shotgun-jobs
 
-	Options
-		--name  Your name
+	Description
+	  AI-powered job application automation tool
 
 	Examples
-	  $ shotgun-jobs --name=Jane
-	  Hello, Jane
+	  $ shotgun-jobs
+	  Starts the interactive CLI
+
+	Commands (available in interactive mode):
+	  /help       Show available commands
+	  /profile    Manage your profile
+	  /apply      Apply to a job with URL
+	  /status     Check application status
+	  /history    View past applications
 `,
 	{
 		importMeta: import.meta,
-		flags: {
-			name: {
-				type: 'string',
-			},
-		},
+		flags: {},
 	},
 );
 
-render(<App name={cli.flags.name} />);
+// Render the interactive CLI
+const app = render(<App />);
+
+// Handle graceful exit
+process.on('exit', () => {
+	app.unmount();
+});

@@ -79,7 +79,7 @@ export function CommandInput({onSubmit, isProcessing}: CommandInputProps) {
 
 	return (
 		<Box flexDirection="column">
-			<Box borderStyle="single" paddingX={1}>
+			<Box borderStyle="round" paddingX={1}>
 				<Text color={isProcessing ? 'gray' : 'green'}>{'> '}</Text>
 				<TextInput
 					value={input}

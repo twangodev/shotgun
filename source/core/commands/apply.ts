@@ -11,9 +11,9 @@ export const applyCommand: Command = {
 				message: 'Please provide a job URL. Usage: /apply <url>',
 			};
 		}
-		
+
 		const url = args[0];
-		
+
 		// Basic URL validation
 		try {
 			new URL(url);
@@ -23,7 +23,7 @@ export const applyCommand: Command = {
 				message: `Invalid URL: ${url}. Please provide a valid job posting URL.`,
 			};
 		}
-		
+
 		// TODO: Implement actual Playwright automation
 		return {
 			success: true,

@@ -22,7 +22,7 @@ export function normalizeURL(input: string): string {
 	if (isValidURL(input)) {
 		return input;
 	}
-	
+
 	// Try adding https:// if it looks like a URL without protocol
 	if (input.includes('.') && !input.includes(' ')) {
 		const withProtocol = `https://${input}`;
@@ -30,7 +30,7 @@ export function normalizeURL(input: string): string {
 			return withProtocol;
 		}
 	}
-	
+
 	return input;
 }
 
@@ -46,11 +46,11 @@ export function extractDomain(url: string): string {
 export function looksLikeURL(input: string): boolean {
 	// Check if input looks like it could be a URL
 	const urlPatterns = [
-		/^https?:\/\//i,  // Starts with http:// or https://
-		/^www\./i,         // Starts with www.
-		/\.(com|org|net|io|co|dev|app|ai|jobs|careers)/i,  // Contains common TLDs
-		/^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/,  // Domain pattern
+		/^https?:\/\//i, // Starts with http:// or https://
+		/^www\./i, // Starts with www.
+		/\.(com|org|net|io|co|dev|app|ai|jobs|careers)/i, // Contains common TLDs
+		/^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/, // Domain pattern
 	];
-	
+
 	return urlPatterns.some(pattern => pattern.test(input));
 }

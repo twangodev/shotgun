@@ -1,13 +1,34 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import {Box, Text} from 'ink';
 import Spinner from 'ink-spinner';
 
 interface StatusBarProps {
 	status: string;
 	isProcessing: boolean;
+	browserSessions: number;
 }
 
-export function StatusBar({status, isProcessing}: StatusBarProps) {
+export function StatusBar({
+	status,
+	isProcessing,
+	browserSessions,
+}: StatusBarProps) {
+	const [dotVisible, setDotVisible] = useState(true);
+
+	// Blink the dot when there are active sessions
+	useEffect(() => {
+		if (browserSessions > 0) {
+			const interval = setInterval(() => {
+				setDotVisible(v => !v);
+			}, 500); // Blink every 500ms
+
+			return () => clearInterval(interval);
+		} else {
+			setDotVisible(false);
+			return undefined;
+		}
+	}, [browserSessions]);
+
 	return (
 		<Box
 			borderStyle="single"
@@ -21,11 +42,21 @@ export function StatusBar({status, isProcessing}: StatusBarProps) {
 			<Box>
 				{isProcessing && (
 					<Text color="yellow">
-						<Spinner type="dots" />
-						{' '}
+						<Spinner type="dots" />{' '}
 					</Text>
 				)}
 				<Text color={isProcessing ? 'yellow' : 'green'}>{status}</Text>
+				{browserSessions > 0 && (
+					<>
+						<Text color="gray"> | </Text>
+						<Text color="green">{dotVisible ? '●' : ' '}</Text>
+						<Text color="gray">
+							{' '}
+							{browserSessions} active{' '}
+							{browserSessions === 1 ? 'session' : 'sessions'}
+						</Text>
+					</>
+				)}
 			</Box>
 			<Text color="gray">Shotgun Jobs v0.1.0</Text>
 		</Box>

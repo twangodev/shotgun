@@ -40,6 +40,7 @@ npm start
 ### Natural Language Support
 
 You can also use natural language commands like:
+
 - "Help me apply to this job: [URL]"
 - "Show my profile"
 - "What's my application status?"

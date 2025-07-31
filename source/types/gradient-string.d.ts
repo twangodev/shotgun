@@ -3,7 +3,7 @@ declare module 'gradient-string' {
 		(text: string): string;
 		multiline(text: string): string;
 	}
-	
+
 	function gradient(colors: string[]): Gradient;
 	export default gradient;
 }

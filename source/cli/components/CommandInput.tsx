@@ -14,7 +14,7 @@ export function CommandInput({onSubmit, isProcessing}: CommandInputProps) {
 	const [history, setHistory] = useState<string[]>([]);
 	const [historyIndex, setHistoryIndex] = useState(-1);
 	const [showAutocomplete, setShowAutocomplete] = useState(true);
-	
+
 	const {suggestions, showSuggestions} = useAutocomplete({
 		history,
 		currentInput: input,
@@ -29,7 +29,7 @@ export function CommandInput({onSubmit, isProcessing}: CommandInputProps) {
 				// This will be handled by the AutoComplete component
 				return;
 			}
-			
+
 			// Escape hides autocomplete
 			if (key.escape) {
 				setShowAutocomplete(false);
@@ -39,46 +39,54 @@ export function CommandInput({onSubmit, isProcessing}: CommandInputProps) {
 			// Handle history navigation only when autocomplete is not shown
 			if (!showSuggestions || !showAutocomplete) {
 				if (key.upArrow && history.length > 0) {
-					const newIndex = historyIndex < history.length - 1 ? historyIndex + 1 : historyIndex;
+					const newIndex =
+						historyIndex < history.length - 1 ? historyIndex + 1 : historyIndex;
 					setHistoryIndex(newIndex);
 					setInput(history[history.length - 1 - newIndex] || '');
 				} else if (key.downArrow) {
 					const newIndex = historyIndex > 0 ? historyIndex - 1 : -1;
 					setHistoryIndex(newIndex);
-					setInput(newIndex === -1 ? '' : history[history.length - 1 - newIndex] || '');
+					setInput(
+						newIndex === -1 ? '' : history[history.length - 1 - newIndex] || '',
+					);
 				}
 			}
 		},
-		{isActive: !isProcessing}
+		{isActive: !isProcessing},
 	);
 
 	const handleSubmit = (value: string) => {
 		if (value.trim()) {
 			let commandToExecute = value;
-			
+
 			// If there are autocomplete suggestions visible and the command starts with /
 			// execute the first suggestion instead
-			if (showAutocomplete && showSuggestions && suggestions.length > 0 && value.startsWith('/')) {
+			if (
+				showAutocomplete &&
+				showSuggestions &&
+				suggestions.length > 0 &&
+				value.startsWith('/')
+			) {
 				commandToExecute = suggestions[0]!.value;
 			}
-			
+
 			// Add to history
 			setHistory(prev => [...prev, commandToExecute]);
 			setHistoryIndex(-1);
-			
+
 			// Submit command
 			onSubmit(commandToExecute);
 			setInput('');
 			setShowAutocomplete(true);
 		}
 	};
-	
+
 	const handleAutocompleteSubmit = (item: {value: string}) => {
 		setInput(item.value);
 		setShowAutocomplete(false);
 		// Focus back on input
 	};
-	
+
 	const handleInputChange = (value: string) => {
 		setInput(value);
 		setShowAutocomplete(true);
@@ -93,7 +101,9 @@ export function CommandInput({onSubmit, isProcessing}: CommandInputProps) {
 					value={input}
 					onChange={handleInputChange}
 					onSubmit={handleSubmit}
-					placeholder={isProcessing ? 'Processing...' : 'Enter command, URL, or type /help'}
+					placeholder={
+						isProcessing ? 'Processing...' : 'Enter command, URL, or type /help'
+					}
 					showCursor={!isProcessing && (!showSuggestions || !showAutocomplete)}
 				/>
 			</Box>

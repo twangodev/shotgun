@@ -8,7 +8,10 @@ interface UseAutocompleteOptions {
 	currentInput: string;
 }
 
-export function useAutocomplete({history, currentInput}: UseAutocompleteOptions) {
+export function useAutocomplete({
+	history,
+	currentInput,
+}: UseAutocompleteOptions) {
 	const [suggestions, setSuggestions] = useState<AutoCompleteItem[]>([]);
 	const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -19,13 +22,13 @@ export function useAutocomplete({history, currentInput}: UseAutocompleteOptions)
 			setShowSuggestions(false);
 			return;
 		}
-		
+
 		const commands = getAvailableCommands();
 		const inputCmd = currentInput.slice(1);
-		
+
 		// Build list of all command options
 		const allCommandOptions: AutoCompleteItem[] = [];
-		
+
 		commands.forEach(cmd => {
 			// Add main command only (no aliases)
 			allCommandOptions.push({
@@ -34,7 +37,7 @@ export function useAutocomplete({history, currentInput}: UseAutocompleteOptions)
 				description: cmd.description,
 			});
 		});
-		
+
 		// Use fuzzy search if there's input after /
 		if (inputCmd.length > 0) {
 			const fuse = new Fuse(allCommandOptions, {
@@ -42,10 +45,10 @@ export function useAutocomplete({history, currentInput}: UseAutocompleteOptions)
 				threshold: 0.4,
 				shouldSort: true,
 			});
-			
+
 			const results = fuse.search(inputCmd);
 			const fuzzyMatches = results.map(result => result.item);
-			
+
 			setSuggestions(fuzzyMatches.slice(0, 10));
 			setShowSuggestions(fuzzyMatches.length > 0);
 		} else {

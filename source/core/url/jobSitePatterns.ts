@@ -36,18 +36,15 @@ export const jobSitePatterns: JobSitePattern[] = [
 	{
 		name: 'Lever',
 		domains: ['lever.co', 'jobs.lever.co', 'jobs.eu.lever.co'],
-		patterns: [
-			/jobs\.(eu\.)?lever\.co\/[\w-]+\/[\w-]+/i,
-		],
+		patterns: [/jobs\.(eu\.)?lever\.co\/[\w-]+\/[\w-]+/i],
 		example: 'https://jobs.lever.co/company/abc-123-def',
 	},
 	{
 		name: 'Workday',
 		domains: ['myworkdayjobs.com'],
-		patterns: [
-			/\.myworkdayjobs\.com\/.+\/job\/.+\/[\w-]+/i,
-		],
-		example: 'https://company.wd1.myworkdayjobs.com/en-US/careers/job/location/Job-Title_R-123456',
+		patterns: [/\.myworkdayjobs\.com\/.+\/job\/.+\/[\w-]+/i],
+		example:
+			'https://company.wd1.myworkdayjobs.com/en-US/careers/job/location/Job-Title_R-123456',
 	},
 	{
 		name: 'AngelList',
@@ -61,34 +58,32 @@ export const jobSitePatterns: JobSitePattern[] = [
 	{
 		name: 'SmartRecruiters',
 		domains: ['smartrecruiters.com', 'jobs.smartrecruiters.com'],
-		patterns: [
-			/jobs\.smartrecruiters\.com\/[\w-]+\/\d+/i,
-		],
+		patterns: [/jobs\.smartrecruiters\.com\/[\w-]+\/\d+/i],
 		example: 'https://jobs.smartrecruiters.com/Company/123456789',
 	},
 ];
 
 export function detectJobSite(url: string): JobSitePattern | null {
 	const normalizedUrl = url.toLowerCase();
-	
+
 	for (const site of jobSitePatterns) {
 		// Check if URL contains any of the site's domains
-		const matchesDomain = site.domains.some(domain => 
-			normalizedUrl.includes(domain)
+		const matchesDomain = site.domains.some(domain =>
+			normalizedUrl.includes(domain),
 		);
-		
+
 		if (matchesDomain) {
 			// Check if URL matches any of the site's patterns
 			const matchesPattern = site.patterns.some(pattern =>
-				pattern.test(normalizedUrl)
+				pattern.test(normalizedUrl),
 			);
-			
+
 			if (matchesPattern) {
 				return site;
 			}
 		}
 	}
-	
+
 	return null;
 }
 

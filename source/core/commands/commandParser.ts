@@ -1,121 +1,57 @@
-import {Command, CommandRegistry, CommandResult} from './commandTypes.js';
-import {helpCommand} from './help.js';
-import {profileCommand} from './profile.js';
-import {applyCommand} from './apply.js';
-import {clearCommand} from './clear.js';
-import {isValidURL, normalizeURL, extractDomain, looksLikeURL} from '../url/urlDetector.js';
-import {getJobSiteInfo} from '../url/jobSitePatterns.js';
+import {CommandResult} from './commandTypes.js';
+import {createInputContext} from '../input/types.js';
+import {HandlerRegistry} from '../input/handlerRegistry.js';
+import {URLHandler} from '../input/handlers/urlHandler.js';
+import {SlashCommandHandler} from '../input/handlers/slashCommandHandler.js';
+import {NaturalLanguageHandler} from '../input/handlers/naturalLanguageHandler.js';
 
-// Initialize command registry
-const commands: CommandRegistry = {
-	help: helpCommand,
-	profile: profileCommand,
-	apply: applyCommand,
-	clear: clearCommand,
-};
+// Initialize handlers on first import
+let initialized = false;
 
-export async function parseAndExecuteCommand(input: string): Promise<CommandResult> {
-	const trimmedInput = input.trim();
-	
-	// First, check if the input is a URL
-	if (looksLikeURL(trimmedInput)) {
-		const normalizedUrl = normalizeURL(trimmedInput);
-		if (isValidURL(normalizedUrl)) {
-			return await handleURLInput(normalizedUrl);
-		}
-	}
-	
-	// Check if it's a slash command
-	if (trimmedInput.startsWith('/')) {
-		const parts = trimmedInput.slice(1).split(' ');
-		const commandName = parts[0]?.toLowerCase();
-		const args = parts.slice(1);
-		
-		if (!commandName) {
-			return {
-				success: false,
-				message: 'Please enter a command name after the slash.',
-			};
-		}
-		
-		// Find command
-		const command = commands[commandName];
-		if (command) {
-			return await command.execute(args);
-		}
-		
-		// Check aliases
-		for (const cmd of Object.values(commands)) {
-			if (cmd.aliases?.includes(commandName)) {
-				return await cmd.execute(args);
+function initializeHandlers() {
+	if (initialized) return;
+
+	// Register handlers in order of priority
+	HandlerRegistry.register(new URLHandler());
+	HandlerRegistry.register(new SlashCommandHandler());
+	HandlerRegistry.register(new NaturalLanguageHandler());
+
+	initialized = true;
+}
+
+export async function parseAndExecuteCommand(
+	input: string,
+): Promise<CommandResult> {
+	// Ensure handlers are initialized
+	initializeHandlers();
+
+	const context = createInputContext(input);
+	const handlers = HandlerRegistry.getHandlers();
+
+	// Process through handlers in priority order
+	for (const handler of handlers) {
+		if (handler.canHandle(context)) {
+			const result = await handler.handle(context);
+
+			if (result.handled && !result.continue) {
+				return (
+					result.result || {
+						success: true,
+						message: 'Command processed successfully',
+					}
+				);
 			}
 		}
-		
-		return {
-			success: false,
-			message: `Unknown command: /${commandName}. Type /help for available commands.`,
-		};
 	}
-	
-	// Handle natural language commands
-	return await handleNaturalLanguage(trimmedInput);
-}
 
-async function handleURLInput(url: string): Promise<CommandResult> {
-	const domain = extractDomain(url);
-	const jobSiteInfo = getJobSiteInfo(url);
-	
+	// No handler could process the input
 	return {
-		success: true,
-		message: `${jobSiteInfo}\n\nReady to apply to job at ${domain}\nURL: ${url}\n\nThis feature will:\n1. Launch a browser with Playwright\n2. Navigate to the job posting\n3. Analyze the application form\n4. Fill out the form using your profile data\n5. Submit the application\n\n(Implementation coming soon!)`,
-		data: {
-			url,
-			domain,
-			action: 'apply',
-		},
+		success: false,
+		message: `Unable to process: "${input}". Type /help for available commands.`,
 	};
 }
 
-async function handleNaturalLanguage(input: string): Promise<CommandResult> {
-	const lowerInput = input.toLowerCase();
-	
-	// Simple pattern matching for now
-	if (lowerInput.includes('help') || lowerInput.includes('what can you do')) {
-		const helpCmd = commands['help'];
-		if (helpCmd) {
-			return await helpCmd.execute([]);
-		}
-	}
-	
-	if (lowerInput.includes('profile')) {
-		const profileCmd = commands['profile'];
-		if (profileCmd) {
-			return await profileCmd.execute([]);
-		}
-	}
-	
-	// Check for URLs in natural language
-	const urlMatch = input.match(/https?:\/\/[^\s]+/i) || input.match(/www\.[^\s]+/i) || input.match(/[a-zA-Z0-9-]+\.(com|org|net|io|co|dev|app|ai|jobs|careers)[^\s]*/i);
-	if (urlMatch) {
-		const normalizedUrl = normalizeURL(urlMatch[0]);
-		if (isValidURL(normalizedUrl)) {
-			return await handleURLInput(normalizedUrl);
-		}
-	}
-	
-	if (lowerInput.includes('apply')) {
-		return {
-			success: false,
-			message: 'Please provide a job URL. You can paste it directly or say "apply to [URL]"',
-		};
-	}
-	
-	return {
-		success: true,
-		message: `I understand: "${input}". For now, please use slash commands like /help, /profile, or /apply <url>`,
-	};
-}
-
-export function getAvailableCommands(): Command[] {
-	return Object.values(commands);
+// Export for compatibility with existing code
+export function getAvailableCommands() {
+	return SlashCommandHandler.getAvailableCommands();
 }

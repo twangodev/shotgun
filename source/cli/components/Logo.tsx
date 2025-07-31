@@ -12,9 +12,7 @@ export function Logo() {
 			</Gradient>
 			<Box marginTop={-2} marginLeft={5}>
 				<Text bold>
-					<Gradient name="cristal">
-						{'J O B S'}
-					</Gradient>
+					<Gradient name="cristal">{'J O B S'}</Gradient>
 				</Text>
 			</Box>
 
@@ -27,7 +25,9 @@ export function Logo() {
 			{/* Welcome message */}
 			<Box marginTop={1}>
 				<Text color="gray">Type </Text>
-				<Text color="green" bold>/help</Text>
+				<Text color="green" bold>
+					/help
+				</Text>
 				<Text color="gray"> for commands or paste a </Text>
 				<Text color="cyan">job URL</Text>
 				<Text color="gray"> to get started</Text>

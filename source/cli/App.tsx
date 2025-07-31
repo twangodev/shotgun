@@ -1,10 +1,11 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {Box, useApp} from 'ink';
 import {CommandInput} from './components/CommandInput.js';
 import {MessageList} from './components/MessageList.js';
 import {StatusBar} from './components/StatusBar.js';
 import {Logo} from './components/Logo.js';
 import {parseAndExecuteCommand} from '../core/commands/commandParser.js';
+import {BrowserManager} from '../core/browser/browserManager.js';
 
 export interface Message {
 	id: string;
@@ -24,11 +25,22 @@ export function App() {
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [status, setStatus] = useState('Ready');
 	const [isProcessing, setIsProcessing] = useState(false);
+	const [browserSessions, setBrowserSessions] = useState(0);
+
+	// Set up browser session tracking
+	useEffect(() => {
+		const browserManager = BrowserManager.getInstance();
+		browserManager.setOnSessionChange(count => {
+			setBrowserSessions(count);
+		});
+	}, []);
 
 	const handleCommand = async (input: string) => {
-		
 		// Check for exit commands
-		if (input.trim().toLowerCase() === '/exit' || input.trim().toLowerCase() === '/quit') {
+		if (
+			input.trim().toLowerCase() === '/exit' ||
+			input.trim().toLowerCase() === '/quit'
+		) {
 			exit();
 			return;
 		}
@@ -48,7 +60,12 @@ export function App() {
 
 		try {
 			const result = await parseAndExecuteCommand(input);
-			
+
+			// Update browser sessions if applicable
+			if (result.data?.action === 'browser_opened') {
+				setBrowserSessions(result.data.sessionCount);
+			}
+
 			// Check if this is a clear command
 			if (result.message === 'CLEAR_MESSAGES') {
 				setMessages([]);
@@ -81,7 +98,11 @@ export function App() {
 			<Box flexGrow={1} flexDirection="column">
 				<MessageList messages={messages} />
 			</Box>
-			<StatusBar status={status} isProcessing={isProcessing} />
+			<StatusBar
+				status={status}
+				isProcessing={isProcessing}
+				browserSessions={browserSessions}
+			/>
 			<CommandInput onSubmit={handleCommand} isProcessing={isProcessing} />
 		</Box>
 	);

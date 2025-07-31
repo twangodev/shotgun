@@ -21,16 +21,11 @@ export interface AppState {
 
 export function App() {
 	const {exit} = useApp();
-	const [showLogo, setShowLogo] = useState(true);
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [status, setStatus] = useState('Ready');
 	const [isProcessing, setIsProcessing] = useState(false);
 
 	const handleCommand = async (input: string) => {
-		// Hide logo on first command
-		if (showLogo) {
-			setShowLogo(false);
-		}
 		
 		// Check for exit commands
 		if (input.trim().toLowerCase() === '/exit' || input.trim().toLowerCase() === '/quit') {
@@ -54,13 +49,18 @@ export function App() {
 		try {
 			const result = await parseAndExecuteCommand(input);
 			
-			const responseMessage: Message = {
-				id: (Date.now() + 1).toString(),
-				type: result.success ? 'system' : 'error',
-				content: result.message,
-				timestamp: new Date(),
-			};
-			setMessages(prev => [...prev, responseMessage]);
+			// Check if this is a clear command
+			if (result.message === 'CLEAR_MESSAGES') {
+				setMessages([]);
+			} else {
+				const responseMessage: Message = {
+					id: (Date.now() + 1).toString(),
+					type: result.success ? 'system' : 'error',
+					content: result.message,
+					timestamp: new Date(),
+				};
+				setMessages(prev => [...prev, responseMessage]);
+			}
 		} catch (error) {
 			const errorMessage: Message = {
 				id: (Date.now() + 1).toString(),
@@ -77,8 +77,9 @@ export function App() {
 
 	return (
 		<Box flexDirection="column" height="100%">
+			<Logo />
 			<Box flexGrow={1} flexDirection="column">
-				{showLogo ? <Logo /> : <MessageList messages={messages} />}
+				<MessageList messages={messages} />
 			</Box>
 			<StatusBar status={status} isProcessing={isProcessing} />
 			<CommandInput onSubmit={handleCommand} isProcessing={isProcessing} />

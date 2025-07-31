@@ -2,6 +2,7 @@ import {Command, CommandRegistry, CommandResult} from './commandTypes.js';
 import {helpCommand} from './help.js';
 import {profileCommand} from './profile.js';
 import {applyCommand} from './apply.js';
+import {clearCommand} from './clear.js';
 import {isValidURL, normalizeURL, extractDomain, looksLikeURL} from '../url/urlDetector.js';
 import {getJobSiteInfo} from '../url/jobSitePatterns.js';
 
@@ -10,6 +11,7 @@ const commands: CommandRegistry = {
 	help: helpCommand,
 	profile: profileCommand,
 	apply: applyCommand,
+	clear: clearCommand,
 };
 
 export async function parseAndExecuteCommand(input: string): Promise<CommandResult> {

@@ -54,12 +54,20 @@ export function CommandInput({onSubmit, isProcessing}: CommandInputProps) {
 
 	const handleSubmit = (value: string) => {
 		if (value.trim()) {
+			let commandToExecute = value;
+			
+			// If there are autocomplete suggestions visible and the command starts with /
+			// execute the first suggestion instead
+			if (showAutocomplete && showSuggestions && suggestions.length > 0 && value.startsWith('/')) {
+				commandToExecute = suggestions[0]!.value;
+			}
+			
 			// Add to history
-			setHistory(prev => [...prev, value]);
+			setHistory(prev => [...prev, commandToExecute]);
 			setHistoryIndex(-1);
 			
 			// Submit command
-			onSubmit(value);
+			onSubmit(commandToExecute);
 			setInput('');
 			setShowAutocomplete(true);
 		}

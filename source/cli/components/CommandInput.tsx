@@ -56,35 +56,32 @@ export function CommandInput({onSubmit, isProcessing}: CommandInputProps) {
 	);
 
 	const handleSubmit = (value: string) => {
+		// Don't submit if autocomplete is visible and would handle this
+		if (showAutocomplete && showSuggestions && suggestions.length > 0) {
+			return;
+		}
+
 		if (value.trim()) {
-			let commandToExecute = value;
-
-			// If there are autocomplete suggestions visible and the command starts with /
-			// execute the first suggestion instead
-			if (
-				showAutocomplete &&
-				showSuggestions &&
-				suggestions.length > 0 &&
-				value.startsWith('/')
-			) {
-				commandToExecute = suggestions[0]!.value;
-			}
-
 			// Add to history
-			setHistory(prev => [...prev, commandToExecute]);
+			setHistory(prev => [...prev, value]);
 			setHistoryIndex(-1);
 
 			// Submit command
-			onSubmit(commandToExecute);
+			onSubmit(value);
 			setInput('');
 			setShowAutocomplete(true);
 		}
 	};
 
 	const handleAutocompleteSubmit = (item: {value: string}) => {
-		setInput(item.value);
-		setShowAutocomplete(false);
-		// Focus back on input
+		// Add to history
+		setHistory(prev => [...prev, item.value]);
+		setHistoryIndex(-1);
+
+		// Submit command directly
+		onSubmit(item.value);
+		setInput('');
+		setShowAutocomplete(true);
 	};
 
 	const handleInputChange = (value: string) => {

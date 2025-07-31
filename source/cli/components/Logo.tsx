@@ -2,6 +2,7 @@ import React from 'react';
 import {Box, Text} from 'ink';
 import BigText from 'ink-big-text';
 import Gradient from 'ink-gradient';
+import {VERSION} from '../../core/version.js';
 
 export function Logo() {
 	return (
@@ -19,7 +20,7 @@ export function Logo() {
 			{/* Tagline and version */}
 			<Box marginTop={1} flexDirection="column" alignItems="center">
 				<Text color="gray">AI-powered job application automation</Text>
-				<Text dimColor>v0.1.0</Text>
+				<Text dimColor>v{VERSION}</Text>
 			</Box>
 
 			{/* Welcome message */}

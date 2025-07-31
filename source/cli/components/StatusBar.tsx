@@ -1,6 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {Box, Text} from 'ink';
 import Spinner from 'ink-spinner';
+import {VERSION} from '../../core/version.js';
 
 interface StatusBarProps {
 	status: string;
@@ -49,7 +50,7 @@ export function StatusBar({
 				{browserSessions > 0 && (
 					<>
 						<Text color="gray"> | </Text>
-						<Text color="green">{dotVisible ? '●' : ' '}</Text>
+						<Text color="green">{dotVisible ? '○' : ' '}</Text>
 						<Text color="gray">
 							{' '}
 							{browserSessions} active{' '}
@@ -58,7 +59,7 @@ export function StatusBar({
 					</>
 				)}
 			</Box>
-			<Text color="gray">Shotgun Jobs v0.1.0</Text>
+			<Text color="gray">shotgun.jobs v{VERSION}</Text>
 		</Box>
 	);
 }

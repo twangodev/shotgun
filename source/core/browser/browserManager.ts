@@ -1,9 +1,11 @@
-import {chromium, Browser, Page} from 'playwright';
+import {chromium, Browser} from 'playwright';
+import {ApplicationSession} from '../session/ApplicationSession.js';
+import {randomUUID} from 'crypto';
 
 export class BrowserManager {
 	private static instance: BrowserManager;
 	private browser: Browser | null = null;
-	private pages: Map<string, Page> = new Map();
+	private sessions: Map<string, ApplicationSession> = new Map();
 	private onSessionChangeCallback?: (count: number) => void;
 
 	static getInstance(): BrowserManager {
@@ -19,7 +21,7 @@ export class BrowserManager {
 
 	private notifySessionChange() {
 		if (this.onSessionChangeCallback) {
-			this.onSessionChangeCallback(this.pages.size);
+			this.onSessionChangeCallback(this.sessions.size);
 		}
 	}
 
@@ -32,41 +34,98 @@ export class BrowserManager {
 
 			// Track when browser is closed
 			this.browser.on('disconnected', () => {
-				this.pages.clear();
+				this.sessions.clear();
 				this.browser = null;
 				this.notifySessionChange();
 			});
 		}
 	}
 
-	async openUrl(url: string): Promise<void> {
+	async createSession(url: string): Promise<ApplicationSession> {
 		await this.ensureBrowserLaunched();
-		const page = await this.browser!.newPage();
+		
+		// Create isolated context for this session
+		const context = await this.browser!.newContext({
+			// Each session gets its own cookies, storage, etc.
+		});
+		
+		const page = await context.newPage();
+		const sessionId = randomUUID();
+		
+		const session = new ApplicationSession({
+			id: sessionId,
+			url,
+			page,
+			context,
+		});
 
-		// Track when individual pages are closed
-		page.on('close', () => {
-			this.pages.delete(url);
+		// Track when context is closed
+		context.on('close', () => {
+			this.sessions.delete(sessionId);
 			this.notifySessionChange();
 		});
 
+		// Also track session events
+		session.on('closed', () => {
+			console.log(`[BrowserManager] Session ${sessionId} closed, removing from map`);
+			this.sessions.delete(sessionId);
+			this.notifySessionChange();
+		});
+
+		// Navigate to the URL
 		await page.goto(url);
-		this.pages.set(url, page);
+		
+		// Store the session
+		this.sessions.set(sessionId, session);
+		console.log(`[BrowserManager] Created session ${sessionId}, total sessions: ${this.sessions.size}`);
 		this.notifySessionChange();
+		
+		return session;
+	}
+
+	getSession(sessionId: string): ApplicationSession | undefined {
+		const session = this.sessions.get(sessionId);
+		console.log(`[BrowserManager] getSession(${sessionId}): ${session ? 'found' : 'not found'}, total sessions: ${this.sessions.size}`);
+		if (!session && this.sessions.size > 0) {
+			console.log('[BrowserManager] Available session IDs:', Array.from(this.sessions.keys()));
+		}
+		return session;
+	}
+
+	async closeSession(sessionId: string): Promise<void> {
+		const session = this.sessions.get(sessionId);
+		if (session) {
+			await session.close();
+			// Session close event will handle cleanup
+		}
 	}
 
 	getActiveSessionCount(): number {
-		return this.pages.size;
+		return this.sessions.size;
 	}
 
 	hasActiveSessions(): boolean {
-		return this.pages.size > 0;
+		return this.sessions.size > 0;
+	}
+
+	listSessions(): ApplicationSession[] {
+		const sessions = Array.from(this.sessions.values());
+		console.log(`[BrowserManager] listSessions: returning ${sessions.length} sessions`);
+		if (sessions.length > 0) {
+			console.log('[BrowserManager] Session IDs:', sessions.map(s => s.id));
+		}
+		return sessions;
+	}
+	
+	getAllSessions(): Map<string, ApplicationSession> {
+		return this.sessions;
 	}
 
 	async cleanup(): Promise<void> {
 		if (this.browser) {
 			await this.browser.close();
 			this.browser = null;
-			this.pages.clear();
+			this.sessions.clear();
 			this.notifySessionChange();
 		}
 	}

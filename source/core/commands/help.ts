@@ -10,7 +10,10 @@ Available Commands:
 
   /help, /h, /?       Show this help message
   /profile            Manage your job application profile
-  /apply url        Apply to a job at the specified URL
+  /apply <url>        Apply to a job at the specified URL
+  /sessions, /ls      Open interactive session selector
+  /detach, /d         Detach from the current session view
+  /clear              Clear the message history
   /status             Check the status of current applications
   /history            View your application history
   /exit, /quit        Exit the application

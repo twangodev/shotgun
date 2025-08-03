@@ -1,5 +1,5 @@
 import {CommandResult} from '../commands/commandTypes.js';
-import {BrowserManager} from '../browser/browserManager.js';
+import {SessionManager} from '../../services/SessionManager.js';
 import {
 	Action,
 	OpenBrowserPayload,
@@ -49,23 +49,24 @@ export class ActionExecutor {
 	private async openBrowser(
 		payload: OpenBrowserPayload,
 	): Promise<CommandResult> {
-		const browserManager = BrowserManager.getInstance();
+		const sessionManager = SessionManager.getInstance();
 
 		try {
-			await browserManager.openUrl(payload.url);
+			const session = await sessionManager.createSession(payload.url);
 
 			return {
 				success: true,
-				message: `Opening ${payload.url} in browser...`,
+				message: `Created session ${session.id.slice(0, 8)} for ${payload.url}. Agent starting...`,
 				data: {
-					action: 'browser_opened',
-					sessionCount: browserManager.getActiveSessionCount(),
+					action: 'session_created',
+					sessionId: session.id,
+					sessionCount: sessionManager.getActiveSessionCount(),
 				},
 			};
 		} catch (error) {
 			return {
 				success: false,
-				message: `Failed to open browser: ${error instanceof Error ? error.message : 'Unknown error'}`,
+				message: `Failed to create session: ${error instanceof Error ? error.message : 'Unknown error'}`,
 			};
 		}
 	}
@@ -92,7 +93,7 @@ export class ActionExecutor {
 	): Promise<CommandResult> {
 		return {
 			success: true,
-			message: `🤖 AI intent parsing coming soon!\nFor now, please enter just the URL to open it directly.`,
+			message: `AI intent parsing coming soon!\nFor now, please enter just the URL to open it directly.`,
 		};
 	}
 }

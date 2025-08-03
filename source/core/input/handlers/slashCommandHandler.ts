@@ -4,6 +4,7 @@ import {helpCommand} from '../../commands/help.js';
 import {profileCommand} from '../../commands/profile.js';
 import {applyCommand} from '../../commands/apply.js';
 import {clearCommand} from '../../commands/clear.js';
+import {sessionsCommand, detachCommand} from '../../commands/sessions.js';
 
 // Command registry
 const commands: Record<string, Command> = {
@@ -11,6 +12,8 @@ const commands: Record<string, Command> = {
 	profile: profileCommand,
 	apply: applyCommand,
 	clear: clearCommand,
+	sessions: sessionsCommand,
+	detach: detachCommand,
 };
 
 export class SlashCommandHandler implements InputHandler {

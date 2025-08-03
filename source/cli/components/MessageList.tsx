@@ -1,6 +1,6 @@
 import React from 'react';
 import {Box, Text} from 'ink';
-import {Message} from '../App.js';
+import {Message} from '../../core/types/message.js';
 
 interface MessageListProps {
 	messages: Message[];
@@ -25,6 +25,12 @@ function MessageItem({message}: {message: Message}) {
 				return 'cyan';
 			case 'error':
 				return 'red';
+			case 'thought':
+				return 'gray';
+			case 'action':
+				return 'cyan';
+			case 'question':
+				return 'yellow';
 			case 'system':
 			default:
 				return 'white';
@@ -36,7 +42,10 @@ function MessageItem({message}: {message: Message}) {
 			case 'user':
 				return '→ ';
 			case 'error':
-				return '✗ ';
+				return '● ';
+			case 'thought':
+			case 'action':
+			case 'question':
 			case 'system':
 			default:
 				return '  ';

@@ -1,12 +1,12 @@
-import {CommandResult} from '../commands/commandTypes.js';
-import {SessionManager} from '../../services/SessionManager.js';
+import {CommandResult} from '../commands/commandTypes';
+import {SessionManager} from '../../services/SessionManager';
 import {
 	Action,
 	OpenBrowserPayload,
 	ExecuteCommandPayload,
 	ShowMessagePayload,
 	AiIntentPayload,
-} from './types.js';
+} from './types';
 
 export class ActionExecutor {
 	private static instance: ActionExecutor;

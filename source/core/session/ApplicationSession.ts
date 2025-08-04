@@ -1,7 +1,7 @@
 import {EventEmitter} from 'events';
 import {Page, BrowserContext} from 'playwright';
-import {AgentSession, SessionStatus, Message} from './types.js';
-import {SessionMessage} from '../feed/types.js';
+import {AgentSession, SessionStatus, Message} from './types';
+import {SessionMessage} from '../feed/types';
 
 export class ApplicationSession extends EventEmitter implements AgentSession {
 	id: string;

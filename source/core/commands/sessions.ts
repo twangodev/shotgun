@@ -1,5 +1,5 @@
-import {Command, CommandResult} from './commandTypes.js';
-import {SessionManager} from '../../services/SessionManager.js';
+import {Command, CommandResult} from './commandTypes';
+import {SessionManager} from '../../services/SessionManager';
 
 export const sessionsCommand: Command = {
 	name: 'sessions',

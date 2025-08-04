@@ -1,5 +1,5 @@
 import {chromium, Browser} from 'playwright';
-import {ApplicationSession} from '../session/ApplicationSession.js';
+import {ApplicationSession} from '../session/ApplicationSession';
 import {randomUUID} from 'crypto';
 
 export class BrowserManager {

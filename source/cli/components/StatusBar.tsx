@@ -1,9 +1,9 @@
 import React, {useState, useEffect} from 'react';
 import {Box, Text} from 'ink';
 import Spinner from 'ink-spinner';
-import {VERSION} from '../../core/version.js';
-import {ApplicationSession} from '../../core/session/ApplicationSession.js';
-import {StatusIndicator} from './StatusIndicator.js';
+import {VERSION} from '../../core/version';
+import {ApplicationSession} from '../../core/session/ApplicationSession';
+import {StatusIndicator} from './StatusIndicator';
 
 interface StatusBarProps {
 	status: string;

@@ -1,6 +1,6 @@
 import React from 'react';
 import {Box, Text} from 'ink';
-import {Message} from '../../core/types/message.js';
+import {Message} from '../../core/types/message';
 
 interface MessageListProps {
 	messages: Message[];

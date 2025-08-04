@@ -1,10 +1,10 @@
-import {InputHandler, InputContext, HandlerResult} from '../types.js';
-import {Command} from '../../commands/commandTypes.js';
-import {helpCommand} from '../../commands/help.js';
-import {profileCommand} from '../../commands/profile.js';
-import {applyCommand} from '../../commands/apply.js';
-import {clearCommand} from '../../commands/clear.js';
-import {sessionsCommand, detachCommand} from '../../commands/sessions.js';
+import {InputHandler, InputContext, HandlerResult} from '../types';
+import {Command} from '../../commands/commandTypes';
+import {helpCommand} from '../../commands/help';
+import {profileCommand} from '../../commands/profile';
+import {applyCommand} from '../../commands/apply';
+import {clearCommand} from '../../commands/clear';
+import {sessionsCommand, detachCommand} from '../../commands/sessions';
 
 // Command registry
 const commands: Record<string, Command> = {

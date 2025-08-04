@@ -1,9 +1,9 @@
 import React from 'react';
 import {Box} from 'ink';
-import {MainFeedItem} from '../../core/feed/types.js';
-import {CommandDisplay} from './CommandDisplay.js';
-import {SessionCard} from './SessionCard.js';
-import {ApplicationSession} from '../../core/session/ApplicationSession.js';
+import {MainFeedItem} from '../../core/feed/types';
+import {CommandDisplay} from './CommandDisplay';
+import {SessionCard} from './SessionCard';
+import {ApplicationSession} from '../../core/session/ApplicationSession';
 
 interface MainFeedProps {
 	feedItems: MainFeedItem[];

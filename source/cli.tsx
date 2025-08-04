@@ -2,7 +2,7 @@
 import React from 'react';
 import {render} from 'ink';
 import meow from 'meow';
-import {App} from './cli/App.js';
+import {App} from './cli/App';
 
 meow(
 	`

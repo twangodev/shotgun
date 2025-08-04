@@ -2,7 +2,7 @@ import React from 'react';
 import {Box, Text, useInput} from 'ink';
 import SelectInput from 'ink-select-input';
 import {format} from 'timeago.js';
-import {SessionInfo} from '../../core/session/types.js';
+import {SessionInfo} from '../../core/session/types';
 
 interface SessionSelectorProps {
 	sessions: SessionInfo[];

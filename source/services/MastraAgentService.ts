@@ -1,5 +1,5 @@
 import {Agent} from '@mastra/core/agent';
-import {ApplicationSession} from '../core/session/ApplicationSession.js';
+import {ApplicationSession} from '../core/session/ApplicationSession';
 
 export class MastraAgentService {
 	private static instance: MastraAgentService;

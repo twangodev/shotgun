@@ -1,6 +1,6 @@
 import { Agent } from '@mastra/core/agent'
 import {ollama} from "ollama-ai-provider";
-import {playwrightClient} from "../mcp/clients/playwright.js";
+import {playwrightClient} from "../mcp/clients/playwright";
 
 export const sessionSupervisor = new Agent({
 	name: 'Session Supervisor',

@@ -1,7 +1,7 @@
-import {InputHandler, InputContext, HandlerResult} from '../types.js';
-import {helpCommand} from '../../commands/help.js';
-import {profileCommand} from '../../commands/profile.js';
-import {ActionExecutor} from '../../actions/executor.js';
+import {InputHandler, InputContext, HandlerResult} from '../types';
+import {helpCommand} from '../../commands/help';
+import {profileCommand} from '../../commands/profile';
+import {ActionExecutor} from '../../actions/executor';
 
 interface Pattern {
 	match: (input: string) => boolean;

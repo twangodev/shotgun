@@ -1,7 +1,7 @@
 import React from 'react';
 import {Box, Text} from 'ink';
 import Spinner from 'ink-spinner';
-import {CommandItem} from '../../core/feed/types.js';
+import {CommandItem} from '../../core/feed/types';
 
 interface CommandDisplayProps {
 	item: CommandItem;

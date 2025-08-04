@@ -1,7 +1,7 @@
 import {useState, useEffect} from 'react';
 import Fuse from 'fuse.js';
-import {AutoCompleteItem} from '../components/AutoComplete.js';
-import {getAvailableCommands} from '../../core/commands/commandParser.js';
+import {AutoCompleteItem} from '../components/AutoComplete';
+import {getAvailableCommands} from '../../core/commands/commandParser';
 
 interface UseAutocompleteOptions {
 	history: string[];

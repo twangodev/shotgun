@@ -1,15 +1,15 @@
 import React, {useState, useEffect} from 'react';
 import {Box, Text, useApp} from 'ink';
-import {CommandInput} from './components/CommandInput.js';
-import {MainFeed} from './components/MainFeed.js';
-import {StatusBar} from './components/StatusBar.js';
-import {Logo} from './components/Logo.js';
-import {SessionSelector} from './components/SessionSelector.js';
-import {ApplicationSession} from '../core/session/ApplicationSession.js';
-import {parseAndExecuteCommand} from '../core/commands/commandParser.js';
-import {BrowserManager} from '../core/browser/browserManager.js';
-import {SessionManager} from '../services/SessionManager.js';
-import {MainFeedItem, CommandItem, SessionItem} from '../core/feed/types.js';
+import {CommandInput} from './components/CommandInput';
+import {MainFeed} from './components/MainFeed';
+import {StatusBar} from './components/StatusBar';
+import {Logo} from './components/Logo';
+import {SessionSelector} from './components/SessionSelector';
+import {ApplicationSession} from '../core/session/ApplicationSession';
+import {parseAndExecuteCommand} from '../core/commands/commandParser';
+import {BrowserManager} from '../core/browser/browserManager';
+import {SessionManager} from '../services/SessionManager';
+import {MainFeedItem, CommandItem, SessionItem} from '../core/feed/types';
 
 export interface AppState {
 	status: string;

@@ -1,4 +1,4 @@
-import {Command, CommandResult} from './commandTypes.js';
+import {Command, CommandResult} from './commandTypes';
 
 export const clearCommand: Command = {
 	name: 'clear',

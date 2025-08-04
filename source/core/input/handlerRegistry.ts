@@ -1,4 +1,4 @@
-import {InputHandler} from './types.js';
+import {InputHandler} from './types';
 
 export class HandlerRegistry {
 	private static handlers: InputHandler[] = [];

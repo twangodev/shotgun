@@ -1,4 +1,4 @@
-import {Command} from './commandTypes.js';
+import {Command} from './commandTypes';
 
 // TODO: This will be replaced with actual profile management
 interface UserProfile {

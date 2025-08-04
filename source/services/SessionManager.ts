@@ -1,8 +1,8 @@
-import {BrowserManager} from '../core/browser/browserManager.js';
-import {ApplicationSession} from '../core/session/ApplicationSession.js';
-import {SessionInfo} from '../core/session/types.js';
-import {MastraAgentService} from './MastraAgentService.js';
-import {sessionSupervisor} from '../mastra/agents/session-supervisor.js';
+import {BrowserManager} from '../core/browser/browserManager';
+import {ApplicationSession} from '../core/session/ApplicationSession';
+import {SessionInfo} from '../core/session/types';
+import {MastraAgentService} from './MastraAgentService';
+import {sessionSupervisor} from '../mastra/agents/session-supervisor';
 
 export class SessionManager {
 	private static instance: SessionManager;

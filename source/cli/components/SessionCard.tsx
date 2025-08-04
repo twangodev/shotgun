@@ -1,9 +1,9 @@
 import React, {useState, useEffect} from 'react';
 import {Box, Text} from 'ink';
 import Spinner from 'ink-spinner';
-import {ApplicationSession} from '../../core/session/ApplicationSession.js';
-import {SessionMessage} from '../../core/feed/types.js';
-import {StatusIndicator} from './StatusIndicator.js';
+import {ApplicationSession} from '../../core/session/ApplicationSession';
+import {SessionMessage} from '../../core/feed/types';
+import {StatusIndicator} from './StatusIndicator';
 
 interface SessionCardProps {
 	session: ApplicationSession;

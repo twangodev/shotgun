@@ -1,6 +1,6 @@
-import {InputHandler, InputContext, HandlerResult} from '../types.js';
-import {isValidURL, normalizeURL, looksLikeURL} from '../../url/urlDetector.js';
-import {ActionExecutor} from '../../actions/executor.js';
+import {InputHandler, InputContext, HandlerResult} from '../types';
+import {isValidURL, normalizeURL, looksLikeURL} from '../../url/urlDetector';
+import {ActionExecutor} from '../../actions/executor';
 
 export class URLHandler implements InputHandler {
 	name = 'URLHandler';

@@ -8,8 +8,8 @@
 		"node": ">=16"
 	},
 	"scripts": {
-		"build": "tsc",
-		"dev": "tsc --watch",
+		"build": "tsup source/cli.tsx --format esm",
+		"dev": "tsup source/cli.tsx --format esm --watch",
 		"test": "prettier --check . && xo && ava",
 		"start": "node dist/cli.js"
 	},
@@ -50,6 +50,7 @@
 		"mastra": "^0.10.18",
 		"prettier": "^3.6.2",
 		"ts-node": "^10.9.2",
+		"tsup": "^8.5.0",
 		"tsx": "^4.20.3",
 		"typescript": "^5.8.3",
 		"xo": "^1.2.1"

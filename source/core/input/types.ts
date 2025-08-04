@@ -1,4 +1,4 @@
-import {CommandResult} from '../commands/commandTypes.js';
+import {CommandResult} from '../commands/commandTypes';
 
 export interface InputContext {
 	raw: string;

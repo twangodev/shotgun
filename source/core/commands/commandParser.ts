@@ -1,9 +1,9 @@
-import {CommandResult} from './commandTypes.js';
-import {createInputContext} from '../input/types.js';
-import {HandlerRegistry} from '../input/handlerRegistry.js';
-import {URLHandler} from '../input/handlers/urlHandler.js';
-import {SlashCommandHandler} from '../input/handlers/slashCommandHandler.js';
-import {NaturalLanguageHandler} from '../input/handlers/naturalLanguageHandler.js';
+import {CommandResult} from './commandTypes';
+import {createInputContext} from '../input/types';
+import {HandlerRegistry} from '../input/handlerRegistry';
+import {URLHandler} from '../input/handlers/urlHandler';
+import {SlashCommandHandler} from '../input/handlers/slashCommandHandler';
+import {NaturalLanguageHandler} from '../input/handlers/naturalLanguageHandler';
 
 // Initialize handlers on first import
 let initialized = false;

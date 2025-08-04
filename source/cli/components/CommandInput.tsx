@@ -1,8 +1,8 @@
 import React, {useState} from 'react';
 import {Box, Text, useInput} from 'ink';
 import TextInput from 'ink-text-input';
-import {AutoComplete} from './AutoComplete.js';
-import {useAutocomplete} from '../hooks/useAutocomplete.js';
+import {AutoComplete} from './AutoComplete';
+import {useAutocomplete} from '../hooks/useAutocomplete';
 
 interface CommandInputProps {
 	onSubmit: (input: string) => void;

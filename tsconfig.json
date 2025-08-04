@@ -1,7 +1,12 @@
 {
 	"extends": "@sindresorhus/tsconfig",
 	"compilerOptions": {
-		"outDir": "dist"
+		"outDir": "dist",
+		"target": "ES2022",
+		"module": "ES2022",
+		"moduleResolution": "bundler"
 	},
-	"include": ["source"]
+	"include": [
+		"source"
+	]
 }

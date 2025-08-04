@@ -17,6 +17,8 @@
 		"dist"
 	],
 	"dependencies": {
+		"@mastra/core": "^0.12.1",
+		"@mastra/mcp": "^0.10.9",
 		"@modelcontextprotocol/sdk": "^1.17.1",
 		"fuse.js": "^7.1.0",
 		"gradient-string": "^3.0.0",
@@ -28,12 +30,15 @@
 		"ink-text-input": "^6.0.0",
 		"meow": "^13.2.0",
 		"oh-my-logo": "^0.2.1",
+		"ollama-ai-provider": "^1.2.0",
 		"playwright": "^1.54.1",
 		"react": "^19.1.1",
-		"timeago.js": "^4.0.2"
+		"timeago.js": "^4.0.2",
+		"zod": "^3.25.76"
 	},
 	"devDependencies": {
 		"@sindresorhus/tsconfig": "^7.0.0",
+		"@types/node": "^24.1.0",
 		"@types/react": "^19.1.9",
 		"@vdemedes/prettier-config": "^2.0.1",
 		"ava": "^6.4.1",
@@ -42,8 +47,10 @@
 		"eslint-plugin-react": "^7.37.5",
 		"eslint-plugin-react-hooks": "^5.2.0",
 		"ink-testing-library": "^4.0.0",
+		"mastra": "^0.10.18",
 		"prettier": "^3.6.2",
 		"ts-node": "^10.9.2",
+		"tsx": "^4.20.3",
 		"typescript": "^5.8.3",
 		"xo": "^1.2.1"
 	},

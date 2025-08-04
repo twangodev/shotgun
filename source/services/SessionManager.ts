@@ -1,17 +1,17 @@
 import {BrowserManager} from '../core/browser/browserManager.js';
 import {ApplicationSession} from '../core/session/ApplicationSession.js';
 import {SessionInfo} from '../core/session/types.js';
-import {JobApplicationSupervisor} from '../agents/JobApplicationSupervisor.js';
-import {PlaywrightMCPService} from './PlaywrightMCPService.js';
+import {MastraAgentService} from './MastraAgentService.js';
+import {sessionSupervisor} from '../mastra/agents/session-supervisor.js';
 
 export class SessionManager {
 	private static instance: SessionManager;
 	private browserManager: BrowserManager;
-	private mcpService: PlaywrightMCPService;
+	private mastraService: MastraAgentService;
 	
 	private constructor() {
 		this.browserManager = BrowserManager.getInstance();
-		this.mcpService = PlaywrightMCPService.getInstance();
+		this.mastraService = MastraAgentService.getInstance();
 	}
 	
 	static getInstance(): SessionManager {
@@ -24,12 +24,11 @@ export class SessionManager {
 	async createSession(url: string): Promise<ApplicationSession> {
 		const session = await this.browserManager.createSession(url);
 		
-		// Create and start supervisor agent
-		const supervisor = new JobApplicationSupervisor(session, this.mcpService);
+		// Start agent analysis in background
+		const initialPrompt = `I need you to analyze the web page at ${url}. Please extract the page content and determine what type of page this is (login, job search, job listing, application form, etc.) and suggest appropriate next actions.`;
 		
-		// Start analysis in background
-		supervisor.start().catch(error => {
-			console.error('Supervisor failed:', error);
+		this.mastraService.runAgent(sessionSupervisor, session, initialPrompt).catch(error => {
+			console.error('Agent failed:', error);
 			session.emitError(`Agent failed: ${error.message}`);
 		});
 		

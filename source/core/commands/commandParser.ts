@@ -1,9 +1,7 @@
 import {CommandResult} from './commandTypes';
 import {createInputContext} from '../input/types';
 import {HandlerRegistry} from '../input/handlerRegistry';
-import {URLHandler} from '../input/handlers/urlHandler';
 import {SlashCommandHandler} from '../input/handlers/slashCommandHandler';
-import {NaturalLanguageHandler} from '../input/handlers/naturalLanguageHandler';
 
 // Initialize handlers on first import
 let initialized = false;
@@ -12,9 +10,7 @@ function initializeHandlers() {
 	if (initialized) return;
 
 	// Register handlers in order of priority
-	HandlerRegistry.register(new URLHandler());
 	HandlerRegistry.register(new SlashCommandHandler());
-	HandlerRegistry.register(new NaturalLanguageHandler());
 
 	initialized = true;
 }

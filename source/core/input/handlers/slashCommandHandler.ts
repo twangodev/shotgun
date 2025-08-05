@@ -1,19 +1,12 @@
 import {InputHandler, InputContext, HandlerResult} from '../types';
 import {Command} from '../../commands/commandTypes';
 import {helpCommand} from '../../commands/help';
-import {profileCommand} from '../../commands/profile';
-import {applyCommand} from '../../commands/apply';
 import {clearCommand} from '../../commands/clear';
-import {sessionsCommand, detachCommand} from '../../commands/sessions';
 
 // Command registry
 const commands: Record<string, Command> = {
 	help: helpCommand,
-	profile: profileCommand,
-	apply: applyCommand,
 	clear: clearCommand,
-	sessions: sessionsCommand,
-	detach: detachCommand,
 };
 
 export class SlashCommandHandler implements InputHandler {

@@ -11,7 +11,7 @@ export function Logo() {
 			<Gradient name="fruit">
 				<BigText text="SHOTGUN" font="block" />
 			</Gradient>
-			<Box marginTop={-2} marginLeft={5}>
+			<Box marginTop={-2}>
 				<Text bold>
 					<Gradient name="cristal">{'J O B S'}</Gradient>
 				</Text>
@@ -19,8 +19,7 @@ export function Logo() {
 
 			{/* Tagline and version */}
 			<Box marginTop={1} flexDirection="column" alignItems="center">
-				<Text color="gray">AI-powered job application automation</Text>
-				<Text dimColor>v{VERSION}</Text>
+				<Text color="gray">Job applications, automated.</Text>
 			</Box>
 
 			{/* Welcome message */}
@@ -29,9 +28,7 @@ export function Logo() {
 				<Text color="green" bold>
 					/help
 				</Text>
-				<Text color="gray"> for commands or paste a </Text>
-				<Text color="cyan">job URL</Text>
-				<Text color="gray"> to get started</Text>
+				<Text color="gray"> for available commands</Text>
 			</Box>
 		</Box>
 	);

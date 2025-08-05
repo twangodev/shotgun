@@ -2,7 +2,6 @@ import React from 'react';
 import {Box, Text} from 'ink';
 import BigText from 'ink-big-text';
 import Gradient from 'ink-gradient';
-import {VERSION} from '../../core/version';
 
 export function Logo() {
 	return (

@@ -10,12 +10,14 @@ export interface AutoCompleteItem {
 interface AutoCompleteProps {
 	items: AutoCompleteItem[];
 	onSubmit: (item: AutoCompleteItem) => void;
+	onFill?: (item: AutoCompleteItem) => void;
 	isActive?: boolean;
 }
 
 export function AutoComplete({
 	items,
 	onSubmit,
+	onFill,
 	isActive = true,
 }: AutoCompleteProps) {
 	const [selectedIndex, setSelectedIndex] = useState(0);
@@ -40,7 +42,11 @@ export function AutoComplete({
 				setSelectedIndex(prev =>
 					prev < filteredItems.length - 1 ? prev + 1 : 0,
 				);
-			} else if (key.tab || key.return) {
+			} else if (key.tab) {
+				if (filteredItems[selectedIndex] && onFill) {
+					onFill(filteredItems[selectedIndex]);
+				}
+			} else if (key.return) {
 				if (filteredItems[selectedIndex]) {
 					onSubmit(filteredItems[selectedIndex]);
 				}
@@ -56,7 +62,7 @@ export function AutoComplete({
 	return (
 		<Box flexDirection="column" marginTop={1} marginLeft={2}>
 			<Text color="gray" dimColor>
-				↑↓ navigate • tab/enter select • esc cancel
+				↑↓ navigate • tab fill • enter select • esc cancel
 			</Text>
 			{filteredItems.slice(0, 10).map((item, index) => (
 				<Box key={`${item.value}-${index}`} marginTop={index === 0 ? 1 : 0}>

@@ -84,6 +84,13 @@ export function CommandInput({onSubmit, isProcessing}: CommandInputProps) {
 		setShowAutocomplete(true);
 	};
 
+	const handleAutocompleteFill = (item: {value: string}) => {
+		// Fill the input with the selected suggestion
+		setInput(item.value);
+		setShowAutocomplete(false);
+		setHistoryIndex(-1);
+	};
+
 	const handleInputChange = (value: string) => {
 		setInput(value);
 		setShowAutocomplete(true);
@@ -101,13 +108,14 @@ export function CommandInput({onSubmit, isProcessing}: CommandInputProps) {
 					placeholder={
 						isProcessing ? 'Processing...' : 'Enter command, URL, or type /help'
 					}
-					showCursor={!isProcessing && (!showSuggestions || !showAutocomplete)}
+					showCursor={!isProcessing}
 				/>
 			</Box>
 			{showAutocomplete && showSuggestions && !isProcessing && (
 				<AutoComplete
 					items={suggestions}
 					onSubmit={handleAutocompleteSubmit}
+					onFill={handleAutocompleteFill}
 					isActive={true}
 				/>
 			)}

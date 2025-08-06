@@ -8,8 +8,8 @@
 		"node": ">=16"
 	},
 	"scripts": {
-		"build": "tsup source/cli.tsx --format esm",
-		"dev": "tsup source/cli.tsx --format esm --watch",
+		"build": "tsup src/cli.tsx --format esm",
+		"dev": "tsup src/cli.tsx --format esm --watch",
 		"test": "prettier --check . && xo && ava",
 		"start": "node dist/cli.js"
 	},

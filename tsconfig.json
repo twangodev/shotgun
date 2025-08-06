@@ -7,6 +7,6 @@
 		"moduleResolution": "bundler"
 	},
 	"include": [
-		"source"
+		"src"
 	]
 }

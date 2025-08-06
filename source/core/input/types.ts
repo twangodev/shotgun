@@ -1,4 +1,4 @@
-import {CommandResult} from '../commands/commandTypes';
+import {CommandResult} from '../command-system/types';
 
 export interface InputContext {
 	raw: string;

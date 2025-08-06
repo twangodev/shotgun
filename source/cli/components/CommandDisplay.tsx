@@ -9,7 +9,7 @@ interface CommandDisplayProps {
 
 export function CommandDisplay({item}: CommandDisplayProps) {
 	const hasResult = item.result || item.error;
-	
+
 	return (
 		<Box flexDirection="column">
 			{/* Command Input */}
@@ -18,11 +18,12 @@ export function CommandDisplay({item}: CommandDisplayProps) {
 				<Text>{item.input}</Text>
 				{item.isExecuting && (
 					<Text color="yellow">
-						{' '}<Spinner type="dots" />
+						{' '}
+						<Spinner type="dots" />
 					</Text>
 				)}
 			</Box>
-			
+
 			{/* Command Result */}
 			{hasResult && (
 				<Box marginLeft={2}>

@@ -8,10 +8,7 @@ interface StatusBarProps {
 	isProcessing: boolean;
 }
 
-export function StatusBar({
-	status,
-	isProcessing,
-}: StatusBarProps) {
+export function StatusBar({status, isProcessing}: StatusBarProps) {
 	return (
 		<Box
 			borderStyle="single"

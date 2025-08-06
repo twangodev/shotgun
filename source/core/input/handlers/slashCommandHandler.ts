@@ -1,13 +1,5 @@
 import {InputHandler, InputContext, HandlerResult} from '../types';
-import {Command} from '../../commands/commandTypes';
-import {helpCommand} from '../../commands/help';
-import {clearCommand} from '../../commands/clear';
-
-// Command registry
-const commands: Record<string, Command> = {
-	help: helpCommand,
-	clear: clearCommand,
-};
+import {commandRegistry} from '../../command-system';
 
 export class SlashCommandHandler implements InputHandler {
 	name = 'SlashCommandHandler';
@@ -32,37 +24,27 @@ export class SlashCommandHandler implements InputHandler {
 			};
 		}
 
-		// Find command by name
-		const command = commands[commandName];
-		if (command) {
-			const result = await command.execute(args);
+		// Use the centralized command registry
+		const result = await commandRegistry.execute(commandName, args);
+
+		// If command not found, provide helpful message
+		if (!result.success && result.message.includes('Unknown command')) {
 			return {
 				handled: true,
-				result,
+				result: {
+					success: false,
+					message: `Unknown command: /${commandName}. Type /help for available commands.`,
+				},
 			};
-		}
-
-		// Check aliases
-		for (const cmd of Object.values(commands)) {
-			if (cmd.aliases?.includes(commandName)) {
-				const result = await cmd.execute(args);
-				return {
-					handled: true,
-					result,
-				};
-			}
 		}
 
 		return {
 			handled: true,
-			result: {
-				success: false,
-				message: `Unknown command: /${commandName}. Type /help for available commands.`,
-			},
+			result,
 		};
 	}
 
-	static getAvailableCommands(): Command[] {
-		return Object.values(commands);
+	static getAvailableCommands() {
+		return commandRegistry.getVisibleCommands();
 	}
 }

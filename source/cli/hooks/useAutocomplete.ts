@@ -1,7 +1,7 @@
 import {useState, useEffect} from 'react';
 import Fuse from 'fuse.js';
 import {AutoCompleteItem} from '../components/AutoComplete';
-import {getAvailableCommands} from '../../core/commands/commandParser';
+import {commandRegistry} from '../../core/command-system';
 
 interface UseAutocompleteOptions {
 	history: string[];
@@ -23,14 +23,13 @@ export function useAutocomplete({
 			return;
 		}
 
-		const commands = getAvailableCommands();
+		const commands = commandRegistry.getVisibleCommands();
 		const inputCmd = currentInput.slice(1);
 
 		// Build list of all command options
 		const allCommandOptions: AutoCompleteItem[] = [];
 
 		commands.forEach(cmd => {
-			// Add main command only (no aliases)
 			allCommandOptions.push({
 				label: `/${cmd.name}`,
 				value: `/${cmd.name}`,
@@ -53,7 +52,11 @@ export function useAutocomplete({
 			setShowSuggestions(fuzzyMatches.length > 0);
 		} else {
 			// Show all commands when only / is typed
-			setSuggestions(allCommandOptions.slice(0, 10));
+			const sortedOptions = allCommandOptions.sort((a, b) => {
+				return a.label.localeCompare(b.label);
+			});
+
+			setSuggestions(sortedOptions.slice(0, 10));
 			setShowSuggestions(true);
 		}
 	}, [currentInput, history]);

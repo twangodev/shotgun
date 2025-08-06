@@ -1,7 +1,4 @@
-export type ActionType =
-	| 'execute_command'
-	| 'show_message'
-	| 'clear_messages';
+export type ActionType = 'execute_command' | 'show_message' | 'clear_messages';
 
 export interface Action<T = any> {
 	type: ActionType;

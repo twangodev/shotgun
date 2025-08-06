@@ -3,6 +3,7 @@ import React from 'react';
 import {render} from 'ink';
 import meow from 'meow';
 import {App} from './cli/App';
+import {initializeCommandSystem} from './core/command-system';
 
 meow(
 	`
@@ -28,6 +29,9 @@ meow(
 		flags: {},
 	},
 );
+
+// Initialize command system
+await initializeCommandSystem();
 
 // Render the interactive CLI
 const app = render(<App />);

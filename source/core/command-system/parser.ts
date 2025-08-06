@@ -1,26 +1,13 @@
-import {CommandResult} from './commandTypes';
+import {CommandResult} from './types';
 import {createInputContext} from '../input/types';
 import {HandlerRegistry} from '../input/handlerRegistry';
-import {SlashCommandHandler} from '../input/handlers/slashCommandHandler';
 
-// Initialize handlers on first import
-let initialized = false;
-
-function initializeHandlers() {
-	if (initialized) return;
-
-	// Register handlers in order of priority
-	HandlerRegistry.register(new SlashCommandHandler());
-
-	initialized = true;
-}
-
+/**
+ * Parse and execute commands through the handler system
+ */
 export async function parseAndExecuteCommand(
 	input: string,
 ): Promise<CommandResult> {
-	// Ensure handlers are initialized
-	initializeHandlers();
-
 	const context = createInputContext(input);
 	const handlers = HandlerRegistry.getHandlers();
 
@@ -45,9 +32,4 @@ export async function parseAndExecuteCommand(
 		success: false,
 		message: `Unable to process: "${input}". Type /help for available commands.`,
 	};
-}
-
-// Export for compatibility with existing code
-export function getAvailableCommands() {
-	return SlashCommandHandler.getAvailableCommands();
 }

@@ -58,6 +58,7 @@
 	"xo": {
 		"extends": "xo-react",
 		"prettier": true,
+		"semicolon": true,
 		"rules": {
 			"react/prop-types": "off"
 		}

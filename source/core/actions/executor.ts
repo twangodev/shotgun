@@ -1,9 +1,5 @@
-import {CommandResult} from '../commands/commandTypes';
-import {
-	Action,
-	ExecuteCommandPayload,
-	ShowMessagePayload,
-} from './types';
+import {CommandResult} from '../command-system/types';
+import {Action, ExecuteCommandPayload, ShowMessagePayload} from './types';
 
 export class ActionExecutor {
 	private static instance: ActionExecutor;

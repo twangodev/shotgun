@@ -1,6 +1,7 @@
 import { Mastra } from '@mastra/core';
 import { supervisorAgent } from './agents/SupervisorAgent';
 import { universalATSWorkflow } from './workflows/universal-ats-workflow';
+import { jobApplicationWorkflow } from './workflows/job-application';
 
 // Initialize Mastra with the supervisor agent and workflow
 export const mastra = new Mastra({
@@ -9,6 +10,7 @@ export const mastra = new Mastra({
   },
   workflows: {
     universalATSWorkflow,
+    jobApplicationWorkflow,
   },
 });
 

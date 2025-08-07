@@ -1,5 +1,6 @@
 import { createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
+import { supervisorAgent } from '../../../agents/SupervisorAgent';
 
 /**
  * Step 1: Observe and understand the page
@@ -19,19 +20,37 @@ export const observeAndAnalyze = createStep({
   }),
   execute: async ({ inputData }) => {
     console.log(`[OBSERVE] Cycle ${inputData.cycleCount}: ${inputData.url}`);
-    
-    // TODO: Replace with actual observation using Supervisor agent
-    // const result = await supervisorAgent.observePage(inputData.url);
-    // const todos = await supervisorAgent.analyzePage(result);
-    
-    // Mock for prototype - agent will determine actual todos
-    return {
-      pageDescription: 'Login page with username and password fields',
-      todos: [
-        'Fill username field with credentials',
-        'Fill password field with credentials',
-        'Click the submit button',
-      ],
+
+    // Use SupervisorAgent with memory to analyze the page
+    const result = await supervisorAgent.generate(
+      `Navigate to ${inputData.url} and analyze what needs to be done to complete the job application.
+      This is cycle ${inputData.cycleCount}.
+
+      Return a JSON response with:
+      - pageDescription: A brief description of what you see
+      - todos: An array of specific tasks that need to be completed`,
+      {
+        memory: {
+          thread: inputData.url, // Use job URL as thread ID for consistency
+          resource: 'user-default'
+        },
+        experimental_output: {
+          type: 'object',
+          properties: {
+            pageDescription: { type: 'string' },
+            todos: {
+              type: 'array',
+              items: { type: 'string' }
+            }
+          },
+          required: ['pageDescription', 'todos']
+        },
+      }
+    );
+
+    return result.object as {
+      pageDescription: string;
+      todos: string[];
     };
   },
 });

@@ -6,3 +6,9 @@ dist
 .env.*
 !.env.example
 !.env.test
+
+# Data
+data/
+*.db
+*.db-shm
+*.db-wal

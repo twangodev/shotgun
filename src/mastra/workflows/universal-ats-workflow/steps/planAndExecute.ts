@@ -1,5 +1,6 @@
 import { createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
+import { supervisorAgent } from '../../../agents/SupervisorAgent';
 
 /**
  * Step 2: Plan and execute actions
@@ -18,24 +19,47 @@ export const planAndExecute = createStep({
     success: z.boolean(),
     result: z.string(),
   }),
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, getInitData }) => {
     const { todos, pageDescription } = inputData;
+    const initData = getInitData() as { url: string; cycleCount: number };
+    
     console.log(`[EXECUTE] Processing ${todos.length} tasks for: ${pageDescription}`);
     
-    // TODO: Replace with actual execution using Supervisor agent
-    // const plan = await supervisorAgent.planActions(todos);
-    // const result = await supervisorAgent.executeActions(plan);
+    // Use SupervisorAgent with memory to execute the tasks
+    const result = await supervisorAgent.generate(
+      `Execute the following tasks to progress the job application:
+      
+      Page context: ${pageDescription}
+      
+      Tasks to complete:
+      ${todos.map((task, i) => `${i + 1}. ${task}`).join('\n')}
+      
+      Fill out forms using the user profile data from your instructions.
+      Return a JSON response with:
+      - actionsExecuted: Number of tasks you completed
+      - success: Whether all tasks were completed successfully
+      - result: A summary of what was accomplished`,
+      {
+        memory: {
+          thread: initData.url, // Same thread as observe step
+          resource: 'user-default'
+        },
+        experimental_output: {
+          type: 'object',
+          properties: {
+            actionsExecuted: { type: 'number' },
+            success: { type: 'boolean' },
+            result: { type: 'string' }
+          },
+          required: ['actionsExecuted', 'success', 'result']
+        }
+      }
+    );
     
-    // Mock execution - just log what we would do
-    for (let i = 0; i < todos.length; i++) {
-      console.log(`[EXECUTE] Task ${i + 1}: ${todos[i]}`);
-      // In real implementation, agent would execute each task
-    }
-    
-    return {
-      actionsExecuted: todos.length,
-      success: true,
-      result: 'All tasks completed successfully',
+    return result.object as {
+      actionsExecuted: number;
+      success: boolean;
+      result: string;
     };
   },
 });

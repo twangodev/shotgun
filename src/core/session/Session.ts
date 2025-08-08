@@ -1,0 +1,73 @@
+/**
+ * Ultra-simple Session class for MVP
+ * Tracks the state of one job application attempt
+ */
+
+export type Phase = 'init' | 'recon' | 'execution' | 'navigation' | 'complete';
+
+export interface ActionItem {
+  id: string;
+  type: 'FILL' | 'CLICK' | 'SELECT';
+  selector: string;
+  value?: any;
+  label?: string;
+  completed: boolean;
+}
+
+export class Session {
+  public readonly id: string;
+  public readonly applicationUrl: string;
+
+  public currentPage: number;
+  public phase: Phase;
+  public actionQueue: ActionItem[];
+  public lastSnapshot: any;
+
+  constructor(id: string, applicationUrl: string) {
+    this.id = id;
+    this.applicationUrl = applicationUrl;
+    this.currentPage = 0;
+    this.phase = 'init';
+    this.actionQueue = [];
+    this.lastSnapshot = null;
+  }
+
+  // Update phase
+  setPhase(phase: Phase) {
+    this.phase = phase;
+  }
+
+  // Page management
+  nextPage() {
+    this.currentPage++;
+    this.actionQueue = []; // Clear queue for new page
+  }
+
+  // Action queue management
+  setActionQueue(actions: ActionItem[]) {
+    this.actionQueue = actions;
+  }
+
+  getNextActions(count: number = 1): ActionItem[] {
+    return this.actionQueue.filter(a => !a.completed).slice(0, count);
+  }
+
+  markActionComplete(actionId: string) {
+    const action = this.actionQueue.find(a => a.id === actionId);
+    if (action) action.completed = true;
+  }
+
+  areAllActionsComplete(): boolean {
+    return this.actionQueue.every(a => a.completed);
+  }
+
+  // Snapshot for diffs
+  setSnapshot(snapshot: any) {
+    this.lastSnapshot = snapshot;
+  }
+
+  // Simple status check
+  isComplete(): boolean {
+    return this.phase === 'complete';
+  }
+}

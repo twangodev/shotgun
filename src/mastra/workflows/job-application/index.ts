@@ -1,7 +1,34 @@
 import { createWorkflow } from '@mastra/core/workflows';
+import { z } from 'zod';
 import * as init from './steps/initialization';
 import * as finalization from './steps/finalization';
 import { pageProcessingLoop } from './sub-workflows';
+
+/**
+ * Input schema for the workflow
+ * Defines what data is needed to start a job application
+ */
+const jobApplicationInputSchema = z.object({
+  applicationUrl: z.string().url(),
+  // Future additions:
+  // userDataRef: z.string().optional(),
+  // options: z.object({
+  //   maxPages: z.number().optional(),
+  //   timeout: z.number().optional(),
+  //   retryOnError: z.boolean().optional(),
+  // }).optional(),
+});
+
+/**
+ * Output schema for the workflow
+ * Defines what the workflow returns upon completion
+ */
+const jobApplicationOutputSchema = z.object({
+  success: z.boolean(),
+  sessionId: z.string(),
+  confirmationNumber: z.string().optional(),
+  message: z.string(),
+});
 
 /**
  * Universal Job Application Workflow
@@ -28,6 +55,8 @@ import { pageProcessingLoop } from './sub-workflows';
 export const jobApplicationWorkflow = createWorkflow({
   id: 'job-application-workflow',
   description: 'Universal job application automation workflow. Handles any form structure with smart adaptation, diff-based verification, and human-like behavior.',
+  inputSchema: jobApplicationInputSchema,
+  outputSchema: jobApplicationOutputSchema,
 })
   // INITIALIZATION PHASE
   // Set up session and navigate to application

@@ -68,12 +68,10 @@ export const jobApplicationWorkflow = createWorkflow({
   .dountil(
     pageProcessingLoop,
     async ({ inputData }) => {
-      // Check if application is complete
-      // This will be determined by landing on confirmation page
-      // or detecting submission success
-      // Placeholder for now - will be implemented with proper data flow
+      // For dry run: Exit after one iteration
       console.log('[MAIN] Checking if application complete...');
-      return inputData.applicationComplete || false;
+      console.log('[MAIN] Dry run mode - exiting after one page');
+      return true; // Exit immediately for dry run
     }
   )
   

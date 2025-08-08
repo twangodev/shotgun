@@ -35,11 +35,10 @@ export const pageProcessingLoop = createWorkflow({
   .dountil(
     actionExecutionLoop,
     async ({ inputData }) => {
-      // Continue until all actions on page are done
-      // This will be determined by the action queue being empty
-      // Placeholder for now - will be implemented with proper data flow
+      // For dry run: Exit after one iteration
       console.log('[PAGE-LOOP] Checking if actions complete...');
-      return inputData.allActionsComplete || false;
+      console.log('[PAGE-LOOP] Dry run mode - exiting after one action batch');
+      return true; // Exit immediately for dry run
     }
   )
   

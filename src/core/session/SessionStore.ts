@@ -3,14 +3,15 @@
  * No persistence - sessions live in memory only
  */
 
+import { v4 as uuidv4 } from 'uuid';
 import { Session } from './Session';
 
 class SessionStore {
   private sessions: Map<string, Session> = new Map();
   
   createSession(applicationUrl: string): Session {
-    // Simple ID generation
-    const id = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Generate UUID v4 for session ID
+    const id = uuidv4();
     const session = new Session(id, applicationUrl);
     this.sessions.set(id, session);
     

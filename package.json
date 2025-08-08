@@ -35,12 +35,14 @@
 		"meow": "^13.2.0",
 		"oh-my-logo": "^0.2.1",
 		"react": "^19.1.1",
+		"uuid": "^11.1.0",
 		"zod": "^3.25.76"
 	},
 	"devDependencies": {
 		"@sindresorhus/tsconfig": "^7.0.0",
 		"@types/node": "^24.2.0",
 		"@types/react": "^19.1.9",
+		"@types/uuid": "^10.0.0",
 		"@vdemedes/prettier-config": "^2.0.1",
 		"ava": "^6.4.1",
 		"chalk": "^5.4.1",

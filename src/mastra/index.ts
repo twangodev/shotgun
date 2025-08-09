@@ -14,7 +14,7 @@ const storage = new LibSQLStore({
 // Initialize Mastra with the supervisor agent and workflow
 export const mastra = new Mastra({
   logger: new PinoLogger({
-    name: 'shotgun-jobs',
+    name: 'shotgun-jobs.mastra',
     level: 'debug', // Debug level for development visibility
   }),
   storage,

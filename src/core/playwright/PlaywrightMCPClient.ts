@@ -111,11 +111,35 @@ export class PlaywrightMCPClient {
     }
   }
 
+  /**
+   * Get a snapshot of the current page's accessibility tree
+   */
+  async snapshot(): Promise<any> {
+    const tool = this.getTool('playwright_browser_snapshot');
+    this.logger?.info('Taking page snapshot', { component: 'PlaywrightMCP' });
+
+    const params = { context: {} };
+
+    try {
+      const result = await tool.execute(params);
+      this.logger?.info('Snapshot captured', { 
+        component: 'PlaywrightMCP',
+        snapshot: result
+      });
+      return result;
+    } catch (error) {
+      this.logger?.error('Snapshot error', { 
+        component: 'PlaywrightMCP', 
+        error 
+      });
+      throw error;
+    }
+  }
+
   // TODO: Add these methods as needed:
   // - click(selector)
   // - type(selector, text)
-  // - snapshot()
-  // - etc.
+  // - evaluate(script)
 
   /**
    * Get a specific tool by name (internal helper)

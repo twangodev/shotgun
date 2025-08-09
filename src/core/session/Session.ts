@@ -4,37 +4,30 @@
  */
 
 import { PlaywrightMCPClient } from '../playwright/PlaywrightMCPClient';
+import type { PageData } from '../../mastra/workflows/job-application/types';
 
 export type Phase = 'init' | 'recon' | 'execution' | 'navigation' | 'complete';
-
-export interface ActionItem {
-  id: string;
-  type: 'FILL' | 'CLICK' | 'SELECT';
-  selector: string;
-  value?: any;
-  label?: string;
-  completed: boolean;
-}
 
 export class Session {
   public readonly id: string;
   public readonly applicationUrl: string;
 
-  public currentPage: number;
   public phase: Phase;
-  public actionQueue: ActionItem[];
-  public lastSnapshot: any;
   public playwrightClient?: PlaywrightMCPClient;
+  
+  // Page management - array where index = page number
+  public pages: PageData[] = [];
+  public currentPageNumber: number = 0;
+  
   private logger?: any;
 
   constructor(id: string, applicationUrl: string, logger?: any) {
     this.logger = logger;
     this.id = id;
     this.applicationUrl = applicationUrl;
-    this.currentPage = 0;
+    this.currentPageNumber = 0;
     this.phase = 'init';
-    this.actionQueue = [];
-    this.lastSnapshot = null;
+    this.pages = [];
   }
 
   /**
@@ -76,33 +69,43 @@ export class Session {
     this.phase = phase;
   }
 
-  // Page management
+  // Page management helpers
+  getCurrentPageData(): PageData | undefined {
+    return this.pages[this.currentPageNumber];
+  }
+
+  initializePageData(snapshot: any, actions: any[] = []): PageData {
+    const pageData: PageData = {
+      snapshot,
+      actions
+    };
+    this.pages[this.currentPageNumber] = pageData;
+    return pageData;
+  }
+
   nextPage() {
-    this.currentPage++;
-    this.actionQueue = []; // Clear queue for new page
+    this.currentPageNumber++;
+    // New page will be initialized when we take its snapshot
   }
 
-  // Action queue management
-  setActionQueue(actions: ActionItem[]) {
-    this.actionQueue = actions;
-  }
-
-  getNextActions(count: number = 1): ActionItem[] {
-    return this.actionQueue.filter(a => !a.completed).slice(0, count);
+  // Action queue management - now works with current page
+  getNextActions(count: number = 1): any[] {
+    const currentPage = this.getCurrentPageData();
+    if (!currentPage) return [];
+    return currentPage.actions.filter(a => !a.completed).slice(0, count);
   }
 
   markActionComplete(actionId: string) {
-    const action = this.actionQueue.find(a => a.id === actionId);
+    const currentPage = this.getCurrentPageData();
+    if (!currentPage) return;
+    const action = currentPage.actions.find(a => a.id === actionId);
     if (action) action.completed = true;
   }
 
   areAllActionsComplete(): boolean {
-    return this.actionQueue.every(a => a.completed);
-  }
-
-  // Snapshot for diffs
-  setSnapshot(snapshot: any) {
-    this.lastSnapshot = snapshot;
+    const currentPage = this.getCurrentPageData();
+    if (!currentPage) return true;
+    return currentPage.actions.every(a => a.completed);
   }
 
   // Simple status check

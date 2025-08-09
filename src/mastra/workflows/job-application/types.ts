@@ -1,15 +1,27 @@
 /**
  * Shared types for the job application workflow
- * These will be expanded as we implement data flow between steps
  */
 
-// Placeholder for now - will add interfaces for:
-// - ActionType (FILL, CLICK, SELECT, etc.)
-// - ActionRiskLevel (LOW, MEDIUM, HIGH)
-// - PageState
-// - SessionState
-// - DiffResult
-// - ErrorType
-// - etc.
+export interface PageSnapshot {
+  id: string;
+  timestamp: number;
+  accessibilityTree: any; // The raw tree from Playwright MCP
+}
 
-export {};
+export type ActionRiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
+
+export interface ActionQueueItem {
+  id: string;
+  type: 'FILL' | 'CLICK' | 'SELECT' | 'UPLOAD';
+  selector: string;
+  label?: string;
+  value?: any;
+  risk: ActionRiskLevel;
+  priority: number;
+  completed: boolean;
+}
+
+export interface PageData {
+  snapshot: PageSnapshot;
+  actions: ActionQueueItem[];
+}

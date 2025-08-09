@@ -1,4 +1,18 @@
 import { createStep } from '@mastra/core/workflows';
+import { z } from 'zod';
+import { sessionStore } from '../../../../../core/session';
+import { v4 as uuidv4 } from 'uuid';
+
+const takeBaselineSnapshotInputSchema = z.object({
+  sessionId: z.string(),
+});
+
+const takeBaselineSnapshotOutputSchema = z.object({
+  sessionId: z.string(),
+  snapshotId: z.string(),
+  elementCount: z.number(),
+  timestamp: z.number(),
+});
 
 /**
  * Take Baseline Snapshot Step
@@ -10,39 +24,65 @@ import { createStep } from '@mastra/core/workflows';
 export const takeBaselineSnapshotStep = createStep({
   id: 'take-baseline-snapshot',
   description: 'Captures complete accessibility tree using Playwright MCP snapshot tool. This is the most token-expensive operation but provides comprehensive page structure. Stored externally and used as baseline for diff computations.',
-  execute: async ({ inputData }) => {
-    console.log('[SNAPSHOT] Taking baseline snapshot of current page...');
+  inputSchema: takeBaselineSnapshotInputSchema,
+  outputSchema: takeBaselineSnapshotOutputSchema,
+  execute: async ({ inputData, mastra }) => {
+    const { sessionId } = inputData;
+    const logger = mastra.getLogger();
     
-    // Implementation approaches:
-    // 1. Use playwright_snapshot() from MCP
-    //    - Returns full accessibility tree (10-20K tokens)
-    //    - Includes all elements, even hidden ones
-    //    - Structured format, not raw HTML
+    logger.info('Taking baseline snapshot', { 
+      component: 'RECON', 
+      sessionId 
+    });
     
-    // 2. Optimization strategies:
-    //    - Check cache first (same URL visited before?)
-    //    - Store snapshot immediately in external memory
-    //    - Compress if possible (gzip for storage)
-    //    - Never pass full snapshot between steps
+    const session = sessionStore.getSession(sessionId);
+    if (!session) {
+      throw new Error(`Session ${sessionId} not found`);
+    }
     
-    // 3. Snapshot metadata to capture:
-    //    - Timestamp
-    //    - URL
-    //    - Page title
-    //    - Rough size (field count)
+    if (!session.playwrightClient) {
+      throw new Error(`Session ${sessionId} not initialized with Playwright MCP`);
+    }
     
-    // 4. Consider alternatives:
-    //    - Could use playwright_evaluate() for smaller targeted snapshots
-    //    - But full snapshot gives complete picture for initial analysis
-    
-    console.log('[SNAPSHOT] Captured accessibility tree');
-    console.log('[SNAPSHOT] Snapshot size: ~15K tokens');
-    console.log('[SNAPSHOT] Storing in external memory with ID: baseline-001');
-    
-    return { 
-      snapshotId: 'baseline-001',
-      snapshotSize: 15000,
-      timestamp: Date.now() 
-    };
+    try {
+      // Get the accessibility tree snapshot
+      const accessibilityTree = await session.playwrightClient.snapshot();
+      
+      // Generate snapshot ID
+      const snapshotId = `snapshot-${uuidv4()}`;
+      
+      // Count elements for metrics (simple approximation)
+      const elementCount = JSON.stringify(accessibilityTree).split('role:').length - 1;
+      
+      // Initialize page data for current page with the snapshot
+      session.initializePageData({
+        id: snapshotId,
+        timestamp: Date.now(),
+        accessibilityTree
+      });
+      
+      logger.info('Baseline snapshot stored', { 
+        component: 'RECON', 
+        sessionId,
+        snapshotId,
+        elementCount,
+        pageNumber: session.currentPageNumber
+      });
+      
+      // Return minimal data - snapshot stays in session
+      return {
+        sessionId,
+        snapshotId,
+        elementCount,
+        timestamp: Date.now()
+      };
+    } catch (error) {
+      logger.error('Failed to take baseline snapshot', { 
+        component: 'RECON', 
+        sessionId, 
+        error 
+      });
+      throw new Error(`Failed to take baseline snapshot: ${error}`);
+    }
   }
 });

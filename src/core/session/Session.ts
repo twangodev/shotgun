@@ -3,6 +3,8 @@
  * Tracks the state of one job application attempt
  */
 
+import { PlaywrightMCPClient } from '../playwright/PlaywrightMCPClient';
+
 export type Phase = 'init' | 'recon' | 'execution' | 'navigation' | 'complete';
 
 export interface ActionItem {
@@ -22,14 +24,51 @@ export class Session {
   public phase: Phase;
   public actionQueue: ActionItem[];
   public lastSnapshot: any;
+  public playwrightClient?: PlaywrightMCPClient;
+  private logger?: any;
 
-  constructor(id: string, applicationUrl: string) {
+  constructor(id: string, applicationUrl: string, logger?: any) {
+    this.logger = logger;
     this.id = id;
     this.applicationUrl = applicationUrl;
     this.currentPage = 0;
     this.phase = 'init';
     this.actionQueue = [];
     this.lastSnapshot = null;
+  }
+
+  /**
+   * Initialize the session with Playwright MCP
+   */
+  async initialize(): Promise<void> {
+    this.logger?.info('Initializing Playwright MCP client', { 
+      component: 'Session', 
+      sessionId: this.id 
+    });
+    this.playwrightClient = new PlaywrightMCPClient(this.id, this.logger);
+    await this.playwrightClient.connect();
+    this.logger?.info('Playwright MCP client connected', { 
+      component: 'Session', 
+      sessionId: this.id 
+    });
+  }
+
+  /**
+   * Close the session and cleanup resources
+   */
+  async close(): Promise<void> {
+    this.logger?.info('Closing session', { 
+      component: 'Session', 
+      sessionId: this.id 
+    });
+    if (this.playwrightClient) {
+      await this.playwrightClient.disconnect();
+      this.playwrightClient = undefined;
+    }
+    this.logger?.info('Session closed', { 
+      component: 'Session', 
+      sessionId: this.id 
+    });
   }
 
   // Update phase

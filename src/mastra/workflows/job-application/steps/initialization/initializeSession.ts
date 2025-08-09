@@ -30,22 +30,42 @@ export const initializeSessionStep = createStep({
   description: 'Creates a new session with unique ID. Sets up in-memory session tracking for the job application workflow.',
   inputSchema: initializeSessionInputSchema,
   outputSchema: initializeSessionOutputSchema,
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, mastra }) => {
     const { applicationUrl } = inputData;
+    const logger = mastra.getLogger();
     
-    console.log('[INIT] Creating new session...');
-    console.log('[INIT] Application URL:', applicationUrl);
+    logger.info('Creating new session', { 
+      component: 'INIT', 
+      applicationUrl 
+    });
     
-    // Create session using the core session store
-    const session = sessionStore.createSession(applicationUrl);
-    
-    console.log(`[INIT] Session created with ID: ${session.id}`);
-    console.log('[INIT] Session initialized and ready');
+    try {
+      // Set the logger on the session store
+      sessionStore.setLogger(logger);
+      
+      // Create session using the core session store (now async)
+      const session = await sessionStore.createSession(applicationUrl);
+      
+      logger.info('Session created successfully', { 
+        component: 'INIT', 
+        sessionId: session.id 
+      });
+      logger.debug('Playwright MCP connected and ready', { 
+        component: 'INIT', 
+        sessionId: session.id 
+      });
 
-    // Return minimal data - just the session ID
-    return {
-      sessionId: session.id,
-      initialized: true
-    };
+      // Return minimal data - just the session ID
+      return {
+        sessionId: session.id,
+        initialized: true
+      };
+    } catch (error) {
+      logger.error('Failed to initialize session', { 
+        component: 'INIT', 
+        error 
+      });
+      throw new Error(`Failed to initialize session: ${error}`);
+    }
   }
 });

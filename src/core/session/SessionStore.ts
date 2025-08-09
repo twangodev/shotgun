@@ -8,14 +8,27 @@ import { Session } from './Session';
 
 class SessionStore {
   private sessions: Map<string, Session> = new Map();
+  private logger?: any;
   
-  createSession(applicationUrl: string): Session {
+  setLogger(logger: any) {
+    this.logger = logger;
+  }
+  
+  async createSession(applicationUrl: string): Promise<Session> {
     // Generate UUID v4 for session ID
     const id = uuidv4();
-    const session = new Session(id, applicationUrl);
+    const session = new Session(id, applicationUrl, this.logger);
+    
+    // Initialize the session (connects Playwright MCP)
+    await session.initialize();
+    
     this.sessions.set(id, session);
     
-    console.log(`[SessionStore] Created session ${id} for ${applicationUrl}`);
+    this.logger?.info('Created and initialized session', {
+      component: 'SessionStore',
+      sessionId: id,
+      applicationUrl
+    });
     return session;
   }
   
@@ -23,8 +36,24 @@ class SessionStore {
     return this.sessions.get(sessionId);
   }
   
+  async closeSession(sessionId: string): Promise<boolean> {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      await session.close();
+      this.logger?.info('Closed and deleted session', {
+        component: 'SessionStore',
+        sessionId
+      });
+      return this.sessions.delete(sessionId);
+    }
+    return false;
+  }
+  
   deleteSession(sessionId: string): boolean {
-    console.log(`[SessionStore] Deleting session ${sessionId}`);
+    this.logger?.warn('Deleting session without closing', {
+      component: 'SessionStore',
+      sessionId
+    });
     return this.sessions.delete(sessionId);
   }
   

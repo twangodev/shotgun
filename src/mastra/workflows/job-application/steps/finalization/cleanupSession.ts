@@ -1,83 +1,62 @@
 import { createStep } from '@mastra/core/workflows';
+import { z } from 'zod';
+import { sessionStore } from '../../../../../core/session';
+
+/**
+ * Input schema for cleanup
+ * Expects the session ID to clean up
+ */
+const cleanupSessionInputSchema = z.object({
+  sessionId: z.string(),
+});
+
+/**
+ * Output schema for cleanup
+ * Returns success status
+ */
+const cleanupSessionOutputSchema = z.object({
+  sessionId: z.string(),
+  cleaned: z.boolean(),
+});
 
 /**
  * Cleanup Session Step
  * 
- * Performs final cleanup after successful application submission.
- * Archives session data, closes browser, and frees resources.
- * Ensures graceful termination of the workflow.
+ * Properly closes the Playwright MCP connection and removes the session from memory.
+ * This ensures browser resources are released and prevents memory leaks.
  */
 export const cleanupSessionStep = createStep({
   id: 'cleanup-session',
-  description: 'Performs final cleanup after application completion. Archives session data for records, closes browser instances, clears temporary storage, and marks session as complete. Ensures graceful workflow termination.',
+  description: 'Closes the Playwright MCP client, releases browser resources, and removes the session from memory store.',
+  inputSchema: cleanupSessionInputSchema,
+  outputSchema: cleanupSessionOutputSchema,
   execute: async ({ inputData }) => {
-    console.log('[CLEANUP] Starting cleanup process...');
+    const { sessionId } = inputData;
     
-    // Implementation approaches:
-    // 1. Data archival:
-    //    ARCHIVE:
-    //    - Session data
-    //    - All snapshots
-    //    - Action history
-    //    - Confirmation details
-    //    
-    //    FORMAT:
-    //    - Compress if large
-    //    - Organize by date/session
-    //    - Include metadata
-    //    
-    //    STORAGE:
-    //    - Move to cold storage
-    //    - S3/Blob storage
-    //    - Database archive table
+    console.log('[CLEANUP] Starting session cleanup...');
+    console.log('[CLEANUP] Session ID:', sessionId);
     
-    // 2. Resource cleanup:
-    //    - Close browser instance
-    //    - Terminate Playwright session
-    //    - Clear temporary files
-    //    - Release memory
-    
-    // 3. Session finalization:
-    //    - Mark session as complete
-    //    - Record final statistics
-    //    - Calculate duration
-    //    - Log success metrics
-    
-    // 4. Temporary data:
-    //    - Clear Redis cache
-    //    - Remove working files
-    //    - Clean checkpoint data
-    //    - Purge diff storage
-    
-    // 5. Success record:
-    //    {
-    //      sessionId: 'xxx',
-    //      startTime: timestamp,
-    //      endTime: timestamp,
-    //      duration: minutes,
-    //      pagesProcessed: 5,
-    //      fieldsFixed: 3,
-    //      confirmationNumber: 'xxx',
-    //      status: 'SUCCESS'
-    //    }
-    
-    // 6. Cleanup options:
-    //    - Immediate: Delete everything
-    //    - Delayed: Keep for 24 hours
-    //    - Archive: Keep indefinitely
-    
-    console.log('[CLEANUP] Archiving session data...');
-    console.log('[CLEANUP] Closing browser...');
-    console.log('[CLEANUP] Clearing temporary storage...');
-    console.log('[CLEANUP] Recording success metrics...');
-    console.log('[CLEANUP] Cleanup complete');
-    console.log('[CLEANUP] Session ended successfully');
-    
-    return { 
-      cleanupComplete: true,
-      sessionArchived: true,
-      resourcesFreed: true,
-      finalStatus: 'SUCCESS' 
-    };
+    try {
+      // Close session and disconnect MCP
+      const success = await sessionStore.closeSession(sessionId);
+      
+      if (success) {
+        console.log('[CLEANUP] Session closed successfully');
+        console.log('[CLEANUP] Browser resources released');
+        console.log('[CLEANUP] Session removed from store');
+      } else {
+        console.warn('[CLEANUP] Session not found in store');
+      }
+      
+      return {
+        sessionId,
+        cleaned: success
+      };
+    } catch (error) {
+      console.error('[CLEANUP] Error during cleanup:', error);
+      // Try to delete anyway to prevent memory leak
+      sessionStore.deleteSession(sessionId);
+      throw new Error(`Failed to cleanup session: ${error}`);
+    }
   }
 });

@@ -18,7 +18,6 @@ export const getNextTODOStep = createStep({
     // 3. Return it for processing
     
     const mockCurrentTodo = {
-      id: 'todo-1',
       task: 'Fill employment history section',
       status: 'pending'
     };

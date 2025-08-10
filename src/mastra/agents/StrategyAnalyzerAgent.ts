@@ -1,63 +1,136 @@
 import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
+import { Memory } from '@mastra/memory';
+import { LibSQLVector } from '@mastra/libsql';
+import { TokenLimiter } from '@mastra/memory/processors';
 
-const instructions = `You are a strategic page analyzer for job applications. Your role is to analyze web pages and determine the best strategic approach.
+const instructions = `You are a TODO list generator for job application pages. Your role is to analyze web pages and generate an ordered list of tasks to complete the application.
 
 CORE RESPONSIBILITIES:
 1. Analyze page structure and content from accessibility trees
-2. Identify page types (login, form, review, confirmation)
-3. Detect required vs optional sections
+2. Identify all form sections and their purposes
+3. Detect required vs optional fields and sections
 4. Find navigation elements and submission buttons
-5. Identify error states and validation issues
+5. Generate actionable TODO items for completing the page
 
-STRATEGIC DECISIONS:
-You must choose one of these four strategies:
+CONTEXT AWARENESS:
+You have access to working memory that tracks:
+- What actions have been completed on previous pages
+- What data has already been provided
+- Patterns observed in this application
+- Current progress through the application
 
-1. FILL_REQUIRED
-   - When: Page has required fields that must be filled
-   - Focus: Identify specific section (employment, contact, education, etc.)
-   - Examples: Job application forms, required questionnaires
+USE THIS CONTEXT to avoid duplicating work and to make intelligent decisions about what needs to be done.
 
-2. SKIP_PAGE  
-   - When: Page contains only optional content
-   - Focus: None needed
-   - Examples: Diversity surveys, optional document uploads, marketing preferences
+TODO GENERATION STRATEGY:
+1. Group related fields into logical tasks (e.g., "Fill employment history section")
+2. Order tasks by importance: required fields first, optional fields last
+3. Include navigation as a TODO when needed (e.g., "Click continue to next page")
+4. Consider skipping optional sections that add risk without value
+5. Be specific enough to be actionable but high-level enough to be flexible
 
-3. SUBMIT
-   - When: Application appears complete and ready to submit
-   - Focus: Location of submit button
-   - Examples: Review page with submit button, final confirmation step
-
-4. NEED_HELP
-   - When: Cannot determine appropriate action or page has errors
-   - Focus: Problem area that needs attention
-   - Examples: Unexpected error pages, ambiguous instructions, broken forms
-
-ANALYSIS APPROACH:
-1. Look for progress indicators (Step X of Y, % complete)
-2. Identify required field markers (*, required, mandatory)
-3. Check for error messages or validation warnings
-4. Find navigation elements (Next, Continue, Submit, Save)
-5. Detect form sections and groupings
-6. Assess if fields already have values
+TODO CATEGORIES:
+- FILL: Complete a form section with data
+- VERIFY: Check that existing data is correct
+- SKIP: Explicitly skip an optional section
+- NAVIGATE: Click buttons to proceed or go back
+- UPLOAD: Handle file uploads if required
+- WAIT: Wait for page elements to load
 
 OUTPUT FORMAT:
-Always return structured JSON with:
-- strategy: One of the four strategies above
-- focus: Specific section to work on (if applicable)
-- confidence: 0-1 score of your decision confidence
-- reason: Brief explanation of your decision
+Return a JSON array of TODO items:
+[
+  {
+    "task": "Fill personal information section",
+    "category": "FILL",
+    "required": true,
+    "details": "Name, email, phone fields"
+  },
+  {
+    "task": "Skip optional diversity survey",
+    "category": "SKIP",
+    "required": false,
+    "details": "Not required for application"
+  },
+  {
+    "task": "Click continue to next page",
+    "category": "NAVIGATE",
+    "required": true,
+    "details": "Bottom of page"
+  }
+]
 
 IMPORTANT:
-- Be decisive - always pick a strategy even if uncertain (use NEED_HELP if truly stuck)
-- For FILL_REQUIRED, always specify a focus area
-- Consider the entire page context, not just individual elements
-- If you see "Thank you" or "Confirmation" messages, the application is likely complete`;
+- Generate TODOs in the order they should be executed
+- Consider what's already been done (from working memory)
+- Be intelligent about skipping risky optional sections
+- Always include navigation as the last TODO if needed
+- If the page shows "Thank you" or confirmation, generate a single TODO to note completion`;
+
+// Working memory template for tracking application progress
+const workingMemoryTemplate = `# Application Progress
+
+## Completed Pages
+- Page 1: [Summary of what was done]
+- Page 2: [Summary of what was done]
+
+## Data Provided So Far
+- Personal Info: [Not provided / Provided]
+- Contact: [Not provided / Provided]
+- Employment History: [Not provided / Provided]
+- Education: [Not provided / Provided]
+- References: [Not provided / Provided]
+- Documents: [Not provided / Provided]
+
+## Current Page Info
+- URL: [Current page URL]
+- Page Number: [X of Y if known]
+- Page Type: [Form / Review / Confirmation / etc.]
+
+## Observed Patterns
+- Required field markers: [* / required / etc.]
+- Navigation style: [Next button / Save & Continue / etc.]
+- Validation behavior: [Inline / On submit / etc.]
+- Optional sections: [Can be skipped / Must be explicitly skipped]
+
+## Decisions Made
+- Skipped sections: [List of skipped sections and why]
+- Navigation choices: [Saved as draft / Continued / etc.]`;
+
+// Configure memory - lean MVP with semantic recall and token limits
+// Storage is automatically inherited from the main Mastra instance
+const memory = new Memory({
+  // Use LibSQL for vector storage (same DB as main storage)
+  vector: new LibSQLVector({
+    connectionUrl: process.env.DATABASE_URL || 'file:./shotgun-jobs.db',
+  }),
+  // Use OpenAI for embeddings (simple, no extra deps)
+  embedder: openai.embedding('text-embedding-3-small'),
+  options: {
+    workingMemory: {
+      enabled: true,
+      template: workingMemoryTemplate,
+      scope: 'thread', // Per-application memory
+    },
+    semanticRecall: {
+      enabled: true,
+      topK: 2, // Reduced from 3 to save tokens
+      messageRange: 1, // Reduced context to save tokens
+      scope: 'resource', // Search across all applications for this user
+    },
+    lastMessages: 5, // Reduced from 10 to save tokens
+  },
+  // Add token limiter to prevent context overflow
+  processors: [
+    new TokenLimiter(30000), // Conservative limit - ~25% of GPT-4o's context
+  ],
+});
 
 export const strategyAnalyzerAgent = new Agent({
   name: 'strategy-analyzer',
-  description: 'Analyzes job application pages to determine strategic approach',
+  description: 'Generates TODO lists for job application pages using context-aware analysis',
   instructions,
-  model: openai('gpt-4o-mini'), // Using mini for fast, focused analysis
+  model: openai('gpt-4o'), // Using full model for better reasoning with context
+  memory,
   tools: {}, // No tools needed - pure analysis agent
 });

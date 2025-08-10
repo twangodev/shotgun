@@ -2,6 +2,7 @@ import { Mastra } from '@mastra/core';
 import { PinoLogger } from '@mastra/loggers';
 import {LibSQLStore } from '@mastra/libsql';
 import { supervisorAgent } from './agents/SupervisorAgent';
+import { strategyAnalyzerAgent } from './agents/StrategyAnalyzerAgent';
 import { universalATSWorkflow } from './workflows/universal-ats-workflow';
 import { jobApplicationWorkflow } from './workflows';
 
@@ -20,6 +21,7 @@ export const mastra = new Mastra({
   storage,
   agents: {
     supervisor: supervisorAgent,
+    strategyAnalyzer: strategyAnalyzerAgent,
   },
   workflows: {
     universalATSWorkflow,

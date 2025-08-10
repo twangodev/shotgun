@@ -1,55 +1,81 @@
 import { createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
+import { sessionStore } from '../../../../../core/session';
+import { strategyAnalyzerAgent } from '../../../../agents/StrategyAnalyzerAgent';
 
 /**
- * Generate TODO List Step
+ * Generate TODO List Step (MVP)
  * 
- * Analyzes the page and generates a TODO list of high-level tasks to accomplish.
- * Each TODO represents a logical grouping of actions (e.g., "Fill employment section").
+ * Simple implementation that uses the StrategyAnalyzerAgent to generate TODOs.
+ * The agent has memory for context but we keep the implementation minimal.
  */
 export const generateTODOListStep = createStep({
   id: 'generate-todo-list',
-  description: 'Analyzes page and generates TODO list of high-level tasks to accomplish',
-  execute: async ({ inputData }) => {
-    console.log('[TODO-GEN] Generating TODO list for page...');
+  description: 'Uses AI agent to generate TODO list for the current page',
+  execute: async ({ inputData, mastra }) => {
+    const { sessionId } = inputData;
+    const logger = mastra.getLogger();
     
-    // PLACEHOLDER: In real implementation:
-    // 1. Get snapshot from session
-    // 2. Analyze page content
-    // 3. Generate ordered list of tasks
+    // Get snapshot from session
+    const session = sessionStore.getSession(sessionId);
+    if (!session) {
+      throw new Error(`Session ${sessionId} not found`);
+    }
     
-    // Simple ordered task list - order matters, not priority
-    const mockTodos = [
-      {
-        id: 'todo-1',
-        task: 'Fill employment history section',
-        status: 'pending'
-      },
-      {
-        id: 'todo-2', 
-        task: 'Fill education section',
-        status: 'pending'
-      },
-      {
-        id: 'todo-3',
-        task: 'Skip optional references section',
-        status: 'pending'
-      },
-      {
-        id: 'todo-4',
-        task: 'Click continue to next page',
-        status: 'pending'
-      }
-    ];
+    const currentPageData = session.getCurrentPageData();
+    if (!currentPageData?.baselineSnapshot) {
+      throw new Error(`No snapshot found for session ${sessionId}`);
+    }
     
-    console.log('[TODO-GEN] Generated TODOs (in order):');
-    mockTodos.forEach((todo, index) => {
-      console.log(`  ${index + 1}. ${todo.task}`);
+    // Stringify the accessibility tree
+    const treeString = JSON.stringify(currentPageData.baselineSnapshot.accessibilityTree, null, 2);
+    
+    // Simple token estimation (rough: 1 token ≈ 4 chars)
+    const estimatedTokens = treeString.length / 4;
+    if (estimatedTokens > 50000) {
+      // Tree is too large, truncate or summarize
+      logger.warn(`[TODO-GEN] Large accessibility tree detected: ~${Math.round(estimatedTokens)} tokens`);
+      // For MVP, just truncate - in production, we'd intelligently filter
+      const truncated = treeString.substring(0, 200000); // ~50K tokens
+      const prompt = `Analyze this page and generate a TODO list.
+
+Accessibility Tree (truncated due to size):
+${truncated}...
+
+Return ONLY a JSON array.`;
+    } else {
+      // Normal size, proceed as usual
+      var prompt = `Analyze this page and generate a TODO list.
+
+Accessibility Tree:
+${treeString}
+
+Return ONLY a JSON array.`;
+    }
+    
+    // Call agent (it has memory for context)
+    const response = await strategyAnalyzerAgent.generate(prompt, {
+      threadId: `app-${sessionId}`,
+      resourceId: 'user',
     });
     
+    // Extract JSON from response
+    const jsonMatch = response.text.match(/\[.*\]/s);
+    if (!jsonMatch) {
+      throw new Error('No JSON array in response');
+    }
+    
+    // Parse and add status field
+    const todos = JSON.parse(jsonMatch[0]).map((todo: any) => ({
+      ...todo,
+      status: 'pending'
+    }));
+    
+    logger.info(`[TODO-GEN] Generated ${todos.length} TODOs`);
+    
     return {
-      sessionId: inputData.sessionId,
-      todos: mockTodos,
+      sessionId,
+      todos,
       pageNumber: inputData.pageNumber || 1
     };
   }

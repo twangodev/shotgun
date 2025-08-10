@@ -1,63 +1,37 @@
 import { createWorkflow } from '@mastra/core/workflows';
 import * as recon from '../steps/reconnaissance';
-import * as navigation from '../steps/navigation';
-import { actionExecutionLoop } from './actionExecutionLoop';
+import { todoExecutionLoop } from './todoExecutionLoop';
 
 /**
- * Page Processing Loop Sub-Workflow
+ * Page Processing Loop Sub-Workflow (Simplified MVP)
  * 
- * Processes a single page from reconnaissance through navigation.
- * Handles the complete lifecycle of one page in the application.
- * Includes action execution loop and page transition logic.
+ * Minimal flow: Snapshot → TODOs → Execute → Check
+ * Navigation is handled as a TODO (e.g., "Click continue")
  */
 export const pageProcessingLoop = createWorkflow({
   id: 'page-processing-loop',
-  description: 'Complete page processing from initial snapshot through navigation. Performs reconnaissance, executes all actions via inner loop, then handles navigation to next page.',
+  description: 'Simplified page processing using TODO list and ReAct execution',
 })
-  // RECONNAISSANCE PHASE
-  // Take expensive snapshot once per page
+  // Take snapshot of current page
   .then(recon.takeBaselineSnapshotStep)
   
-  // SEQUENTIAL TWO-AGENT ANALYSIS
-  // Supervisor analyzes page and determines strategy
-  .then(recon.analyzePageStrategyStep)
+  // Generate TODO list (includes navigation as a TODO)
+  .then(recon.generateTODOListStep)
   
-  // Extract relevant actions based on strategy
-  .then(recon.extractRelevantActionsStep)
-  
-  // Build smart action queue with risk levels
-  .then(recon.buildActionQueueStep)
-  
-  // Store everything externally
-  .then(recon.storePageStructureStep)
-  
-  // Clear context to save tokens
-  .then(recon.clearContextStep)
-  
-  // ACTION EXECUTION PHASE
-  // Loop until all actions complete
+  // Execute all TODOs using ReAct pattern
   .dountil(
-    actionExecutionLoop,
+    todoExecutionLoop,
     async ({ inputData }) => {
-      // For dry run: Exit after one iteration
-      console.log('[PAGE-LOOP] Checking if actions complete...');
-      console.log('[PAGE-LOOP] Dry run mode - exiting after one action batch');
-      return true; // Exit immediately for dry run
+      // Continue until all TODOs are processed
+      console.log('[PAGE-LOOP] Checking if all TODOs complete...');
+      // For placeholder, just run once
+      console.log('[PAGE-LOOP] Placeholder mode - exiting after one TODO');
+      return true;
     }
   )
   
-  // NAVIGATION PHASE
-  // Check if we can navigate to next page
-  .then(navigation.checkForNavigationStep)
-  
-  // Execute navigation if available
-  .then(navigation.executeNavigationStep)
-  
-  // Verify page changed
-  .then(navigation.detectPageChangeStep)
-  
-  // Update state for next iteration
-  .then(navigation.updatePageStateStep)
+  // Check if page is complete and ready for next
+  .then(recon.checkPageCompleteStep)
   
   .commit();
 

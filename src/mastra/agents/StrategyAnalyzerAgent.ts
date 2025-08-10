@@ -130,7 +130,7 @@ export const strategyAnalyzerAgent = new Agent({
   name: 'strategy-analyzer',
   description: 'Generates TODO lists for job application pages using context-aware analysis',
   instructions,
-  model: openai('gpt-4o'), // Using full model for better reasoning with context
+  model: openai('gpt-5-nano'), // GPT-5 nano: 50x cheaper than GPT-4o, perfect for structured TODOs
   memory,
   tools: {}, // No tools needed - pure analysis agent
 });

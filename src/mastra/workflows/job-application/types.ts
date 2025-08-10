@@ -22,6 +22,6 @@ export interface ActionQueueItem {
 }
 
 export interface PageData {
-  snapshot: PageSnapshot;
+  baselineSnapshot?: PageSnapshot;
   actions: ActionQueueItem[];
 }

@@ -4,7 +4,7 @@
  */
 
 import { PlaywrightMCPClient } from '../playwright/PlaywrightMCPClient';
-import type { PageData } from '../../mastra/workflows/job-application/types';
+import type { PageData, PageSnapshot } from '../../mastra/workflows/job-application/types';
 
 export type Phase = 'init' | 'recon' | 'execution' | 'navigation' | 'complete';
 
@@ -74,10 +74,10 @@ export class Session {
     return this.pages[this.currentPageNumber];
   }
 
-  initializePageData(snapshot: any, actions: any[] = []): PageData {
+  initializePageData(baselineSnapshot: PageSnapshot): PageData {
     const pageData: PageData = {
-      snapshot,
-      actions
+      baselineSnapshot,
+      actions: []
     };
     this.pages[this.currentPageNumber] = pageData;
     return pageData;

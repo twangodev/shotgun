@@ -5,7 +5,8 @@
  */
 
 export { takeBaselineSnapshotStep } from './takeBaselineSnapshot';
-export { extractPageActionsStep } from './extractPageActions';
+export { analyzePageStrategyStep } from './analyzePageStrategy';
+export { extractRelevantActionsStep } from './extractRelevantActions';
 export { buildActionQueueStep } from './buildActionQueue';
 export { storePageStructureStep } from './storePageStructure';
 export { clearContextStep } from './clearContext';

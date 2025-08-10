@@ -18,8 +18,12 @@ export const pageProcessingLoop = createWorkflow({
   // Take expensive snapshot once per page
   .then(recon.takeBaselineSnapshotStep)
   
-  // Extract all possible actions from page
-  .then(recon.extractPageActionsStep)
+  // SEQUENTIAL TWO-AGENT ANALYSIS
+  // Supervisor analyzes page and determines strategy
+  .then(recon.analyzePageStrategyStep)
+  
+  // Extract relevant actions based on strategy
+  .then(recon.extractRelevantActionsStep)
   
   // Build smart action queue with risk levels
   .then(recon.buildActionQueueStep)

@@ -1,8 +1,6 @@
 import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
-import { Memory } from '@mastra/memory';
-import { LibSQLVector } from '@mastra/libsql';
-import { TokenLimiter } from '@mastra/memory/processors';
+import { agentMemory } from '../memory';
 
 const instructions = `You are a TODO list generator for job application pages. Your role is to analyze web pages and generate an ordered list of tasks to complete the application.
 
@@ -67,70 +65,12 @@ IMPORTANT:
 - Always include navigation as the last TODO if needed
 - If the page shows "Thank you" or confirmation, generate a single TODO to note completion`;
 
-// Working memory template for tracking application progress
-const workingMemoryTemplate = `# Application Progress
-
-## Completed Pages
-- Page 1: [Summary of what was done]
-- Page 2: [Summary of what was done]
-
-## Data Provided So Far
-- Personal Info: [Not provided / Provided]
-- Contact: [Not provided / Provided]
-- Employment History: [Not provided / Provided]
-- Education: [Not provided / Provided]
-- References: [Not provided / Provided]
-- Documents: [Not provided / Provided]
-
-## Current Page Info
-- URL: [Current page URL]
-- Page Number: [X of Y if known]
-- Page Type: [Form / Review / Confirmation / etc.]
-
-## Observed Patterns
-- Required field markers: [* / required / etc.]
-- Navigation style: [Next button / Save & Continue / etc.]
-- Validation behavior: [Inline / On submit / etc.]
-- Optional sections: [Can be skipped / Must be explicitly skipped]
-
-## Decisions Made
-- Skipped sections: [List of skipped sections and why]
-- Navigation choices: [Saved as draft / Continued / etc.]`;
-
-// Configure memory - lean MVP with semantic recall and token limits
-// Storage is automatically inherited from the main Mastra instance
-const memory = new Memory({
-  // Use LibSQL for vector storage (same DB as main storage)
-  vector: new LibSQLVector({
-    connectionUrl: process.env.DATABASE_URL || 'file:./shotgun-jobs.db',
-  }),
-  // Use OpenAI for embeddings (simple, no extra deps)
-  embedder: openai.embedding('text-embedding-3-small'),
-  options: {
-    workingMemory: {
-      enabled: true,
-      template: workingMemoryTemplate,
-      scope: 'thread', // Per-application memory
-    },
-    semanticRecall: {
-      enabled: true,
-      topK: 2, // Reduced from 3 to save tokens
-      messageRange: 1, // Reduced context to save tokens
-      scope: 'resource', // Search across all applications for this user
-    },
-    lastMessages: 5, // Reduced from 10 to save tokens
-  },
-  // Add token limiter to prevent context overflow
-  processors: [
-    new TokenLimiter(30000), // Conservative limit - ~25% of GPT-4o's context
-  ],
-});
 
 export const strategyAnalyzerAgent = new Agent({
   name: 'strategy-analyzer',
   description: 'Generates TODO lists for job application pages using context-aware analysis',
   instructions,
   model: openai('gpt-5-nano'), // GPT-5 nano: 50x cheaper than GPT-4o, perfect for structured TODOs
-  memory,
+  memory: agentMemory,
   tools: {}, // No tools needed - pure analysis agent
 });

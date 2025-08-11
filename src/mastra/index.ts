@@ -1,9 +1,7 @@
 import { Mastra } from '@mastra/core';
 import { PinoLogger } from '@mastra/loggers';
 import {LibSQLStore } from '@mastra/libsql';
-import { supervisorAgent } from './agents/SupervisorAgent';
 import { strategyAnalyzerAgent } from './agents/StrategyAnalyzerAgent';
-import { universalATSWorkflow } from './workflows/universal-ats-workflow';
 import { jobApplicationWorkflow } from './workflows';
 
 // Initialize storage for Mastra
@@ -12,7 +10,7 @@ const storage = new LibSQLStore({
   authToken: process.env.DATABASE_AUTH_TOKEN,
 });
 
-// Initialize Mastra with the supervisor agent and workflow
+// Initialize Mastra with agents and workflows
 export const mastra = new Mastra({
   logger: new PinoLogger({
     name: 'shotgun-jobs.mastra',
@@ -20,15 +18,12 @@ export const mastra = new Mastra({
   }),
   storage,
   agents: {
-    supervisor: supervisorAgent,
     strategyAnalyzer: strategyAnalyzerAgent,
   },
   workflows: {
-    universalATSWorkflow,
     jobApplicationWorkflow,
   },
 });
 
-// Export types and agent for external use
+// Export types for external use
 export * from './types';
-export { supervisorAgent } from './agents/SupervisorAgent';

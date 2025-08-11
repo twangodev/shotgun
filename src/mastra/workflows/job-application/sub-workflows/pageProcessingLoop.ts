@@ -23,10 +23,27 @@ export const pageProcessingLoop = createWorkflow({
     todoExecutionLoop,
     async ({ inputData }) => {
       // Continue until all TODOs are processed
-      console.log('[PAGE-LOOP] Checking if all TODOs complete...');
-      // For placeholder, just run once
-      console.log('[PAGE-LOOP] Placeholder mode - exiting after one TODO');
-      return true;
+      const { todos = [], allTodosProcessed = false } = inputData;
+      
+      const pendingCount = todos.filter((t: any) => t.status === 'pending').length;
+      const completeCount = todos.filter((t: any) => t.status === 'complete').length;
+      const failedCount = todos.filter((t: any) => t.status === 'failed').length;
+      
+      console.log('[PAGE-LOOP] TODO Status:', {
+        pending: pendingCount,
+        complete: completeCount,
+        failed: failedCount,
+        total: todos.length
+      });
+      
+      // Stop when no pending TODOs remain
+      const shouldStop = pendingCount === 0 || allTodosProcessed;
+      
+      if (shouldStop) {
+        console.log('[PAGE-LOOP] All TODOs processed, moving to page complete check');
+      }
+      
+      return shouldStop;
     }
   )
   

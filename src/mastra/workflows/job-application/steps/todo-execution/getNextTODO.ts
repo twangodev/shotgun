@@ -4,30 +4,45 @@ import { createStep } from '@mastra/core/workflows';
  * Get Next TODO Step
  * 
  * Retrieves the next pending TODO from the list.
- * Part of the ReAct loop for executing individual TODOs.
+ * Uses simple array with status tracking - no mutations, just finds first pending.
  */
 export const getNextTODOStep = createStep({
   id: 'get-next-todo',
   description: 'Gets the next pending TODO from the list',
   execute: async ({ inputData }) => {
-    console.log('[GET-TODO] Getting next pending TODO...');
+    const { todos = [] } = inputData;
     
-    // PLACEHOLDER: In real implementation:
-    // 1. Get TODOs from session
-    // 2. Find first pending TODO (order matters!)
-    // 3. Return it for processing
+    console.log('[GET-TODO] Checking TODO queue...', {
+      total: todos.length,
+      pending: todos.filter(t => t.status === 'pending').length,
+      complete: todos.filter(t => t.status === 'complete').length
+    });
     
-    const mockCurrentTodo = {
-      task: 'Fill employment history section',
-      status: 'pending'
-    };
+    // Find first pending TODO (maintains order)
+    const nextTodo = todos.find(t => t.status === 'pending');
     
-    console.log(`[GET-TODO] Next task: "${mockCurrentTodo.task}"`);
+    if (!nextTodo) {
+      console.log('[GET-TODO] No pending TODOs remaining');
+      return {
+        ...inputData,
+        currentTodo: null,
+        hasPendingTodos: false
+      };
+    }
+    
+    // Mark as processing (in the workflow data, not mutating original)
+    const todoIndex = todos.indexOf(nextTodo);
+    const updatedTodos = [...todos];
+    updatedTodos[todoIndex] = { ...nextTodo, status: 'processing' };
+    
+    console.log(`[GET-TODO] Processing: "${nextTodo.task}"`);
     
     return {
-      sessionId: inputData.sessionId,
-      currentTodo: mockCurrentTodo,
-      remainingTodos: 3
+      ...inputData,
+      todos: updatedTodos,
+      currentTodo: nextTodo,
+      currentTodoIndex: todoIndex,
+      hasPendingTodos: true
     };
   }
 });

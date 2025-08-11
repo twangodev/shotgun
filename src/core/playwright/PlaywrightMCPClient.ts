@@ -122,9 +122,12 @@ export class PlaywrightMCPClient {
 
     try {
       const result = await tool.execute(params);
+      // Log snapshot metadata only, not the full content
+      const snapshotSize = JSON.stringify(result).length;
       this.logger?.info('Snapshot captured', { 
         component: 'PlaywrightMCP',
-        snapshot: result
+        snapshotSizeBytes: snapshotSize,
+        estimatedTokens: Math.round(snapshotSize / 4)
       });
       return result;
     } catch (error) {

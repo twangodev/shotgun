@@ -36,9 +36,21 @@ export const todoExecutionLoop = createWorkflow({
     
     // Continue loop if decision is RETRY
     async ({ inputData }) => {
-      console.log('[REACT-LOOP] Should continue?', inputData.shouldContinueLoop);
-      // For placeholder, just run once
-      return false;
+      const { decision = 'COMPLETE', retryCount = 0 } = inputData;
+      const maxRetries = 3;
+      
+      // Continue if decision is RETRY and we haven't hit max retries
+      const shouldRetry = decision === 'RETRY' && retryCount < maxRetries;
+      
+      console.log('[REACT-LOOP] Decision:', decision, 'Retry count:', retryCount);
+      
+      if (shouldRetry) {
+        console.log('[REACT-LOOP] Retrying TODO execution...');
+      } else if (retryCount >= maxRetries) {
+        console.log('[REACT-LOOP] Max retries reached, marking as failed');
+      }
+      
+      return shouldRetry;
     }
   )
   

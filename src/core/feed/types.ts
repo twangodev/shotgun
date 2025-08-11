@@ -13,4 +13,12 @@ export interface CommandItem extends FeedItem {
 	isExecuting?: boolean;
 }
 
-export type MainFeedItem = CommandItem;
+export interface EventItem extends FeedItem {
+	type: 'event';
+	eventType: string;
+	message: string;
+	parentCommandId?: string;
+	metadata?: any;
+}
+
+export type MainFeedItem = CommandItem | EventItem;

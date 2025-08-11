@@ -8,9 +8,10 @@
 		"node": ">=16"
 	},
 	"scripts": {
-		"build": "tsup src/cli.tsx --format esm",
-		"dev": "tsx src/cli.tsx",
-		"start": "node dist/cli.js"
+		"build": "tsup src/cli.tsx --format esm --minify",
+		"dev": "tsup src/cli.tsx --format esm --watch",
+		"start": "node dist/cli.js",
+		"cli": "tsx src/cli.tsx"
 	},
 	"files": [
 		"dist"

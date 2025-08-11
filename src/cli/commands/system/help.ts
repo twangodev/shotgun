@@ -1,18 +1,20 @@
 import {Command} from '../registry';
 import {commandRegistry} from '../registry';
+import {CommandEvent} from '../../../core/events';
 
 export const helpCommand: Command = {
 	name: 'help',
 	description: 'Show available commands and usage information',
-	execute: async (args: string[]) => {
+	async *execute(args: string[]): AsyncGenerator<CommandEvent> {
 		// If a specific command is requested, show detailed help
 		if (args.length > 0) {
 			const commandName = args[0];
 			if (!commandName) {
-				return {
-					success: false,
-					message: 'Please specify a command name.',
+				yield {
+					type: 'error',
+					error: 'Please specify a command name.',
 				};
+				return;
 			}
 			const command = commandRegistry.get(commandName);
 
@@ -30,15 +32,17 @@ export const helpCommand: Command = {
 					});
 				}
 
-				return {
-					success: true,
-					message: helpText.trim(),
+				yield {
+					type: 'message',
+					content: helpText.trim(),
 				};
+				return;
 			} else {
-				return {
-					success: false,
-					message: `Unknown command: ${commandName}. Type /help to see all available commands.`,
+				yield {
+					type: 'error',
+					error: `Unknown command: ${commandName}. Type /help to see all available commands.`,
 				};
+				return;
 			}
 		}
 
@@ -76,9 +80,9 @@ export const helpCommand: Command = {
 		helpText += '  - Use arrow keys to navigate command history\n';
 		helpText += '  - Press Ctrl+C to cancel current operation';
 
-		return {
-			success: true,
-			message: helpText.trim(),
+		yield {
+			type: 'message',
+			content: helpText.trim(),
 		};
 	},
 };

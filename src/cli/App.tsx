@@ -5,7 +5,8 @@ import {MainFeed} from './components/MainFeed';
 import {StatusBar} from './components/StatusBar';
 import {Logo} from './components/Logo';
 import {parseAndExecuteCommand} from './commands/registry';
-import {MainFeedItem, CommandItem} from '../core/feed/types';
+import {MainFeedItem, CommandItem, EventItem} from '../core/feed/types';
+import {CommandEvent} from '../core/events';
 
 export interface AppState {
 	status: string;
@@ -39,22 +40,83 @@ export function App() {
 
 	const processCommand = async (commandItem: CommandItem) => {
 		try {
-			const result = await parseAndExecuteCommand(commandItem.input);
-
-			// Handle special commands
-			if (result.message === 'CLEAR_MESSAGES') {
-				setFeedItems([]);
-			} else if (result.message === 'EXIT_APPLICATION') {
-				exit();
-			} else {
-				// Normal command result
+			const eventStream = parseAndExecuteCommand(commandItem.input);
+			let hasContent = false;
+			let resultMessages: string[] = [];
+			
+			// Consume the event stream
+			for await (const event of eventStream) {
+				// Handle special events
+				if (event.type === 'clear') {
+					setFeedItems([]);
+					hasContent = true;
+				} else if (event.type === 'exit') {
+					exit();
+				} else if (event.type === 'message') {
+					// Collect messages
+					resultMessages.push(event.content);
+					hasContent = true;
+				} else if (event.type === 'error') {
+					// Handle errors
+					const errorMessage = typeof event.error === 'string' 
+						? event.error 
+						: event.error instanceof Error 
+							? event.error.message 
+							: 'Unknown error';
+					
+					setFeedItems(prev =>
+						prev.map(item =>
+							item.id === commandItem.id
+								? {
+										...item,
+										error: errorMessage,
+										isExecuting: false,
+									}
+								: item,
+						),
+					);
+					hasContent = true;
+				} else if (event.type === 'progress') {
+					// Add progress events as separate feed items
+					const eventItem: EventItem = {
+						id: `${commandItem.id}_event_${idCounterRef.current++}`,
+						type: 'event',
+						timestamp: new Date(),
+						eventType: 'progress',
+						message: event.message,
+						parentCommandId: commandItem.id,
+					};
+					setFeedItems(prev => [...prev, eventItem]);
+					hasContent = true;
+				} else if (event.type === 'completed') {
+					// Mark command as completed
+					if (event.data) {
+						resultMessages.push(`Completed: ${JSON.stringify(event.data)}`);
+					}
+					hasContent = true;
+				}
+			}
+			
+			// Update command item with accumulated results
+			if (hasContent && resultMessages.length > 0) {
 				setFeedItems(prev =>
 					prev.map(item =>
 						item.id === commandItem.id
 							? {
 									...item,
-									result: result.success ? result.message : undefined,
-									error: result.success ? undefined : result.message,
+									result: resultMessages.join('\n'),
+									isExecuting: false,
+								}
+							: item,
+					),
+				);
+			} else if (hasContent) {
+				// Just mark as not executing if we handled special events
+				setFeedItems(prev =>
+					prev.map(item =>
+						item.id === commandItem.id
+							? {
+									...item,
 									isExecuting: false,
 								}
 							: item,

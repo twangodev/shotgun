@@ -1,15 +1,12 @@
-import {Command, CommandResult} from '../registry';
+import {Command} from '../registry';
+import {CommandEvent} from '../../../core/events';
 
 export const clearCommand: Command = {
 	name: 'clear',
 	description: 'Clear the message history',
-	execute: async (): Promise<CommandResult> => {
-		return {
-			success: true,
-			message: 'CLEAR_MESSAGES',
-			data: {
-				action: 'clear',
-			},
+	async *execute(): AsyncGenerator<CommandEvent> {
+		yield {
+			type: 'clear',
 		};
 	},
 };

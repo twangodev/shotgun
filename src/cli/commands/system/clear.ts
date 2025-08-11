@@ -1,4 +1,4 @@
-import {Command, CommandResult} from '../../core/command-system';
+import {Command, CommandResult} from '../registry';
 
 export const clearCommand: Command = {
 	name: 'clear',

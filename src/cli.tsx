@@ -3,7 +3,7 @@ import React from 'react';
 import {render} from 'ink';
 import meow from 'meow';
 import {App} from './cli/App';
-import {initializeCommandSystem} from './core/command-system';
+import {initializeCommandSystem} from './cli/commands/registry';
 
 meow(
 	`

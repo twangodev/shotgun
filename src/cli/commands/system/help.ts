@@ -1,5 +1,5 @@
-import {Command} from '../../core/command-system';
-import {commandRegistry} from '../../core/command-system';
+import {Command} from '../registry';
+import {commandRegistry} from '../registry';
 
 export const helpCommand: Command = {
 	name: 'help',

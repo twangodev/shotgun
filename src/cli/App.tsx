@@ -4,7 +4,7 @@ import {CommandInput} from './components/CommandInput';
 import {MainFeed} from './components/MainFeed';
 import {StatusBar} from './components/StatusBar';
 import {Logo} from './components/Logo';
-import {parseAndExecuteCommand} from '../core/command-system';
+import {parseAndExecuteCommand} from './commands/registry';
 import {MainFeedItem, CommandItem} from '../core/feed/types';
 
 export interface AppState {

@@ -1,10 +1,16 @@
 {
-	"extends": "@sindresorhus/tsconfig",
 	"compilerOptions": {
 		"outDir": "dist",
 		"target": "ES2022",
 		"module": "ES2022",
-		"moduleResolution": "bundler"
+		"moduleResolution": "bundler",
+		"jsx": "react",
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"strict": true,
+		"declaration": true,
+		"declarationMap": true,
+		"sourceMap": true
 	},
 	"include": [
 		"src"

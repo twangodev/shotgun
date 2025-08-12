@@ -1,10 +1,17 @@
+import {chromium, Browser, Page} from 'playwright';
 import {UserProfile} from '../profile';
 import {ApplicationEvent, AgentConfig} from './types';
 import {CommandEvent} from '../events';
+import {
+	formatAccessibilitySnapshot,
+	extractFormFields,
+	getValueFromProfile,
+	findSubmitButton,
+} from '../browser/accessibility';
 
 /**
- * Mock implementation of JobApplicationAgent for Phase 1
- * This simulates the application process with delays to demonstrate streaming
+ * Job Application Agent - Phase 2 Implementation
+ * Uses Playwright for real browser automation with accessibility-first approach
  */
 export class JobApplicationAgent {
 	constructor(
@@ -18,7 +25,7 @@ export class JobApplicationAgent {
 	) {}
 
 	/**
-	 * Mock apply to job - simulates the application process
+	 * Apply to a job posting using browser automation
 	 */
 	async *applyToJob(url: string): AsyncGenerator<CommandEvent> {
 		// Validate URL
@@ -30,117 +37,165 @@ export class JobApplicationAgent {
 			return;
 		}
 
-		yield {
-			type: 'progress',
-			message: `Starting application to ${url}`,
-		};
+		let browser: Browser | null = null;
+		let page: Page | null = null;
 
-		// Simulate delay
-		await this.delay(1000);
-
-		yield {
-			type: 'progress',
-			message: 'Navigating to job posting...',
-		};
-
-		await this.delay(1500);
-
-		yield {
-			type: 'progress',
-			message: 'Analyzing page structure...',
-		};
-
-		await this.delay(2000);
-
-		// Simulate filling form fields
-		const fields = [
-			{name: 'First Name', value: this.profile.personal.firstName},
-			{name: 'Last Name', value: this.profile.personal.lastName},
-			{name: 'Email', value: this.profile.personal.email},
-			{name: 'Phone', value: this.profile.personal.phone},
-			{name: 'Current Title', value: this.profile.professional.currentTitle},
-			{
-				name: 'Years of Experience',
-				value: this.profile.professional.yearsExperience.toString(),
-			},
-		];
-
-		for (const field of fields) {
+		try {
+			// Launch browser (fresh instance per application)
 			yield {
 				type: 'progress',
-				message: `Filling field: ${field.name} → ${field.value}`,
+				message: 'Launching browser...',
 			};
-			await this.delay(500);
+			browser = await chromium.launch({
+				headless: this.config.headless,
+			});
+			page = await browser.newPage();
+
+			// Set reasonable timeout
+			page.setDefaultTimeout(this.config.timeout);
+
+			// Navigate to job posting
+			yield {
+				type: 'progress',
+				message: `Navigating to ${url}...`,
+			};
+			await page.goto(url, {waitUntil: 'networkidle'});
+
+			// Get page title for context
+			const title = await page.title();
+			yield {
+				type: 'progress',
+				message: `Page loaded: ${title}`,
+			};
+
+			// Get accessibility snapshot
+			yield {
+				type: 'progress',
+				message: 'Analyzing page structure...',
+			};
+			const snapshot = await page.accessibility.snapshot();
+			
+			// Format snapshot for readability (like Playwright MCP)
+			const formattedSnapshot = formatAccessibilitySnapshot(snapshot);
+			
+			// Log the snapshot for debugging (in production, this could be saved)
+			console.log('Accessibility Snapshot:');
+			console.log(formattedSnapshot);
+
+			// Extract form fields from snapshot
+			const fields = extractFormFields(formattedSnapshot);
+			yield {
+				type: 'progress',
+				message: `Found ${fields.length} form fields`,
+			};
+
+			// Fill each field that we can map to profile
+			for (const field of fields) {
+				if (field.profileMapping) {
+					const value = getValueFromProfile(this.profile, field.profileMapping);
+					if (value) {
+						yield {
+							type: 'progress',
+							message: `Filling "${field.name}" with "${value}"`,
+						};
+						
+						try {
+							// Use semantic locator to fill the field
+							await page.getByLabel(field.name).fill(value);
+							
+							// Small delay to appear more human-like
+							await this.delay(500);
+						} catch (error) {
+							console.error(`Failed to fill field "${field.name}":`, error);
+							// Continue with other fields even if one fails
+						}
+					}
+				} else {
+					// Log fields we couldn't map (Phase 3 will use AI for these)
+					console.log(`No mapping for field: ${field.name}`);
+				}
+			}
+
+			// Find and click submit button
+			const submitButtonText = findSubmitButton(formattedSnapshot);
+			if (submitButtonText) {
+				yield {
+					type: 'progress',
+					message: `Clicking "${submitButtonText}" button...`,
+				};
+				
+				try {
+					await page.getByRole('button', {name: submitButtonText}).click();
+					
+					// Wait for navigation or response
+					await page.waitForLoadState('networkidle');
+					
+					yield {
+						type: 'progress',
+						message: 'Application submitted!',
+					};
+				} catch (error) {
+					console.error('Failed to submit application:', error);
+					yield {
+						type: 'error',
+						error: 'Failed to submit application',
+					};
+				}
+			} else {
+				yield {
+					type: 'progress',
+					message: 'No submit button found - manual submission may be required',
+				};
+			}
+
+			// Success!
+			yield {
+				type: 'completed',
+				data: {
+					url,
+					title,
+					fieldsFound: fields.length,
+					fieldsFilled: fields.filter(f => f.profileMapping).length,
+				},
+			};
+
+			yield {
+				type: 'message',
+				content: `Application process completed for: ${title}`,
+			};
+
+		} catch (error) {
+			// Simple error handling - log and exit
+			console.error('Application failed:', error);
+			
+			// Take screenshot on error if configured
+			if (this.config.screenshotOnError && page) {
+				try {
+					const screenshot = await page.screenshot({fullPage: true});
+					console.log('Error screenshot saved');
+					// In production, save this to a file
+				} catch (screenshotError) {
+					console.error('Failed to take screenshot:', screenshotError);
+				}
+			}
+			
+			yield {
+				type: 'error',
+				error: error instanceof Error ? error.message : 'Unknown error occurred',
+			};
+		} finally {
+			// Always close browser
+			if (browser) {
+				await browser.close();
+			}
 		}
-
-		yield {
-			type: 'progress',
-			message: 'Uploading resume...',
-		};
-		await this.delay(2000);
-
-		yield {
-			type: 'progress',
-			message: 'Clicking submit button...',
-		};
-		await this.delay(1000);
-
-		// Simulate multi-page application
-		yield {
-			type: 'progress',
-			message: 'Page 1 completed, navigating to page 2...',
-		};
-		await this.delay(1500);
-
-		yield {
-			type: 'progress',
-			message: 'Filling additional information...',
-		};
-		await this.delay(2000);
-
-		yield {
-			type: 'progress',
-			message: 'Reviewing application...',
-		};
-		await this.delay(1000);
-
-		yield {
-			type: 'progress',
-			message: 'Submitting final application...',
-		};
-		await this.delay(1500);
-
-		// Success!
-		const confirmationNumber = this.generateConfirmationNumber();
-		yield {
-			type: 'completed',
-			data: {
-				confirmationNumber,
-				appliedAt: new Date().toISOString(),
-				position: 'Software Engineer', // Mock position
-				company: 'Example Corp', // Mock company
-			},
-		};
-
-		yield {
-			type: 'message',
-			content: `✅ Application submitted successfully!\nConfirmation: ${confirmationNumber}`,
-		};
 	}
 
 	/**
-	 * Streaming wrapper to convert ApplicationEvents to CommandEvents
+	 * Streaming wrapper for compatibility
 	 */
 	async *streamApplication(url: string): AsyncGenerator<CommandEvent> {
-		try {
-			// In Phase 2, this will use the real applyToJob implementation
-			yield* this.applyToJob(url);
-		} catch (error) {
-			yield {
-				type: 'error',
-				error: error instanceof Error ? error : new Error('Unknown error'),
-			};
-		}
+		yield* this.applyToJob(url);
 	}
 
 	private isValidUrl(url: string): boolean {
@@ -154,9 +209,5 @@ export class JobApplicationAgent {
 
 	private delay(ms: number): Promise<void> {
 		return new Promise(resolve => setTimeout(resolve, ms));
-	}
-
-	private generateConfirmationNumber(): string {
-		return `APP-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 	}
 }

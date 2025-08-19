@@ -1,3 +1,19 @@
+/**
+ * Copyright 2025 (Apache License 2.0 - derived from playwright-mcp)
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import {Page} from 'playwright';
 import {BrowserTool, BrowserToolResult, BrowserToolErrorType} from './types';
 
@@ -9,11 +25,12 @@ export interface SelectParams {
 	text?: string;          // Option text to select
 	index?: number;         // Option index to select
 	description?: string;   // Human-readable description
+	element?: string;       // Human-readable element description (from AI)
 }
 
 /**
  * Select Tool - Selects options in dropdown/select elements
- * Can reveal new fields, so typically needs re-snapshot after
+ * Based on playwright-mcp's select implementation
  */
 export class SelectTool implements BrowserTool<SelectParams, BrowserToolResult> {
 	name = 'select';
@@ -21,90 +38,81 @@ export class SelectTool implements BrowserTool<SelectParams, BrowserToolResult> 
 	
 	async execute(params: SelectParams, page: Page): Promise<BrowserToolResult> {
 		try {
-			// Try multiple strategies to find the element
-			let element;
+			let locator;
 			
-			// Strategy 1: Try ref attribute (from snapshot)
+			// Priority 1: Use aria-ref selector if ref is provided
 			if (params.ref) {
-				element = page.locator(`[aria-ref="${params.ref}"]`);
-				const count = await element.count();
-				if (count === 0) {
-					element = null;
+				// Validate ref exists in current snapshot
+				const snapshot = await this.getPageSnapshot(page);
+				if (snapshot && !snapshot.includes(`[ref=${params.ref}]`)) {
+					throw new Error(
+						`Ref ${params.ref} not found in current page snapshot. ` +
+						`Element may have been removed or page changed.`
+					);
 				}
+				
+				locator = page.locator(`aria-ref=${params.ref}`);
 			}
-			
-			// Strategy 2: Try label
-			if (!element && params.label) {
-				element = page.getByLabel(params.label);
-				const count = await element.count();
-				if (count === 0) {
-					element = null;
-				}
+			// Priority 2: Use CSS selector
+			else if (params.selector) {
+				locator = page.locator(params.selector);
 			}
-			
-			// Strategy 3: Try CSS selector
-			if (!element && params.selector) {
-				element = page.locator(params.selector);
-				const count = await element.count();
-				if (count === 0) {
-					element = null;
-				}
+			// Priority 3: Use label text
+			else if (params.label) {
+				locator = page.getByLabel(params.label);
 			}
-			
-			if (!element) {
-				return {
-					success: false,
-					message: `Could not find select element: ${params.description || params.label || params.ref}`,
-					error: {
-						message: 'Select element not found with any strategy',
-						recoverable: true,
-						type: BrowserToolErrorType.ELEMENT_NOT_FOUND,
-					},
-				};
+			else {
+				throw new Error('No ref, selector, or label provided');
 			}
 			
 			// Select the option
 			if (params.value) {
-				await element.selectOption({value: params.value});
+				await locator.selectOption({value: params.value});
 			} else if (params.text) {
-				await element.selectOption({label: params.text});
+				await locator.selectOption({label: params.text});
 			} else if (params.index !== undefined) {
-				await element.selectOption({index: params.index});
+				await locator.selectOption({index: params.index});
 			} else {
-				return {
-					success: false,
-					message: 'No selection criteria provided',
-					error: {
-						message: 'Must provide value, text, or index',
-						recoverable: false,
-						type: BrowserToolErrorType.INVALID_PARAMS,
-					},
-				};
+				throw new Error('Must provide value, text, or index to select');
 			}
 			
 			// Verify the selection
-			const selectedValue = await element.inputValue();
+			const selectedValue = await locator.inputValue();
+			const elementDesc = params.element || params.description || params.label || params.ref || 'dropdown';
 			
 			return {
 				success: true,
-				message: `Selected "${params.text || params.value}" in ${params.description || params.label}`,
+				message: `Selected "${params.text || params.value || `index ${params.index}`}" in ${elementDesc}`,
 				data: {
 					elementRef: params.ref,
 					selectedValue,
 				},
 			};
 		} catch (error) {
-			const errorMsg = error instanceof Error ? error.message : String(error);
-			
 			return {
 				success: false,
-				message: `Failed to select option: ${params.description || params.label}`,
+				message: `Failed to select option: ${error}`,
 				error: {
-					message: errorMsg,
-					recoverable: true,
-					type: BrowserToolErrorType.ELEMENT_NOT_FOUND,
-				},
+					message: String(error),
+					type: BrowserToolErrorType.ELEMENT_NOT_FOUND
+				}
 			};
+		}
+	}
+	
+	private async getPageSnapshot(page: Page): Promise<string> {
+		try {
+			// Use Playwright's internal snapshot method
+			const pageEx = page as any;
+			if (pageEx._snapshotForAI) {
+				return await pageEx._snapshotForAI();
+			}
+			// Fallback to accessibility snapshot
+			const snapshot = await page.accessibility.snapshot();
+			return JSON.stringify(snapshot);
+		} catch (error) {
+			console.warn('Could not get page snapshot for validation:', error);
+			return '';
 		}
 	}
 	

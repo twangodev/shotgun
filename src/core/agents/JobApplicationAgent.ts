@@ -206,7 +206,12 @@ export class JobApplicationAgent {
 				error: error instanceof Error ? error.message : 'Unknown error'
 			};
 		} finally {
-			if (browser) await browser.close();
+			if (browser) {
+				// Wait 30 seconds before closing to see the result
+				console.log('⏳ Waiting 30 seconds before closing browser...');
+				await this.delay(30000);
+				await browser.close();
+			}
 		}
 	}
 
@@ -375,6 +380,20 @@ export class JobApplicationAgent {
 			const mapping = analysis.fieldMappings.find(m => m.ref === action.params.ref);
 			if (mapping?.label) {
 				enhancedParams.label = mapping.label;
+			}
+		}
+		
+		// Enhance upload action with file path from fieldMappings
+		if (action.toolName === 'upload' && analysis.fieldMappings) {
+			const mapping = analysis.fieldMappings.find(m => m.ref === action.params.ref);
+			if (mapping?.value && !enhancedParams.filePath) {
+				// Use the value from fieldMapping if filePath is not provided
+				enhancedParams.filePath = mapping.value;
+			}
+			// Also ensure we have a default path if still missing
+			if (!enhancedParams.filePath) {
+				// Hardcoded path for testing - update this to your actual resume path
+				enhancedParams.filePath = '/Users/jding/Documents/resume.pdf';
 			}
 		}
 

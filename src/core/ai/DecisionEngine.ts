@@ -150,20 +150,28 @@ User Profile Summary:
 - Current Role: ${this.profile.professional.currentRole}
 - Years of Experience: ${this.profile.professional.yearsOfExperience}
 - Skills: ${this.profile.professional.skills.slice(0, 5).join(', ')}
-- Resume Path: ~/Documents/resume.pdf (use this exact path for upload actions)
+- Resume Path: /Users/jding/Documents/resume.pdf (use this exact path for upload actions)
 
 Accessibility Snapshot:
 ${snapshot.ariaSnapshot}
 
 Instructions:
 1. Identify what type of page this is
-2. Find all form fields that need to be filled
-3. Map each field to the appropriate profile data
+2. Check existing field values in the snapshot - DO NOT refill fields that already have correct values
+3. Map ONLY empty/incorrect fields to the appropriate profile data
 4. Determine the sequence of actions to complete the form
-5. For file uploads: include a 'click' action to open the file selector, followed by an 'upload' action
-6. Only mark interventionRequired=true for CAPTCHAs or complex questions needing human judgment
-7. File uploads should NOT trigger interventionRequired - we can click the button and ask for help at that step
+5. For file uploads: 
+   - Check if file is already uploaded (look for filename like "resume.pdf" in the UI)
+   - Only upload if no file is shown or upload failed
+   - Use 'upload' tool with the button's ref - it will find the associated file input automatically
+   - IMPORTANT: Always include 'filePath' in params: { ref: "e150", filePath: "/Users/jding/Documents/resume.pdf" }
+6. CRITICAL: After all required fields are filled, CLICK the submit/continue button
+   - Look for buttons with text like "Continue", "Submit", "Next", "Apply Now"
+   - If button is disabled, check what's missing
+   - If button is enabled and all fields are filled, CLICK IT to proceed
+7. Only mark interventionRequired=true for CAPTCHAs or complex questions
 8. Provide confidence scores and reasoning for all decisions
+9. DO NOT repeat the same actions - if fields are already filled correctly, move to the next step
 
 Return a comprehensive analysis with specific actions to take.`;
 	}

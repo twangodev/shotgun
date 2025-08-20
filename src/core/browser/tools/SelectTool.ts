@@ -42,15 +42,7 @@ export class SelectTool implements BrowserTool<SelectParams, BrowserToolResult> 
 			
 			// Priority 1: Use aria-ref selector if ref is provided
 			if (params.ref) {
-				// Validate ref exists in current snapshot
-				const snapshot = await this.getPageSnapshot(page);
-				if (snapshot && !snapshot.includes(`[ref=${params.ref}]`)) {
-					throw new Error(
-						`Ref ${params.ref} not found in current page snapshot. ` +
-						`Element may have been removed or page changed.`
-					);
-				}
-				
+				// Use the aria-ref selector (from playwright-mcp)
 				locator = page.locator(`aria-ref=${params.ref}`);
 			}
 			// Priority 2: Use CSS selector
@@ -94,25 +86,10 @@ export class SelectTool implements BrowserTool<SelectParams, BrowserToolResult> 
 				message: `Failed to select option: ${error}`,
 				error: {
 					message: String(error),
+					recoverable: true,
 					type: BrowserToolErrorType.ELEMENT_NOT_FOUND
 				}
 			};
-		}
-	}
-	
-	private async getPageSnapshot(page: Page): Promise<string> {
-		try {
-			// Use Playwright's internal snapshot method
-			const pageEx = page as any;
-			if (pageEx._snapshotForAI) {
-				return await pageEx._snapshotForAI();
-			}
-			// Fallback to accessibility snapshot
-			const snapshot = await page.accessibility.snapshot();
-			return JSON.stringify(snapshot);
-		} catch (error) {
-			console.warn('Could not get page snapshot for validation:', error);
-			return '';
 		}
 	}
 	

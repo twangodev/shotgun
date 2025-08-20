@@ -8,7 +8,6 @@ import {
 } from '../tools/types';
 import {BrowserToolRegistry} from '../tools/BrowserToolRegistry';
 import {SnapshotManager} from '../snapshot';
-import {RefResolver} from '../RefResolver';
 
 /**
  * Browser Action Scheduler - Manages action queue and execution
@@ -17,7 +16,6 @@ import {RefResolver} from '../RefResolver';
 export class BrowserActionScheduler {
 	private actions: Map<string, TrackedBrowserAction> = new Map();
 	private snapshotManager: SnapshotManager;
-	private refResolver: RefResolver;
 	
 	constructor(
 		private page: Page,
@@ -26,7 +24,6 @@ export class BrowserActionScheduler {
 		private onActionComplete?: (action: TrackedBrowserAction) => void,
 	) {
 		this.snapshotManager = new SnapshotManager(page);
-		this.refResolver = new RefResolver();
 	}
 	
 	/**
@@ -92,14 +89,6 @@ export class BrowserActionScheduler {
 		try {
 			// Take snapshot before action (for verification)
 			const beforeSnapshot = await this.snapshotManager.createFullSnapshot();
-			
-			// Update RefResolver with current snapshot
-			this.refResolver.parseSnapshot(beforeSnapshot.ariaSnapshot);
-			
-			// Pass RefResolver to tool if it supports it
-			if ('setRefResolver' in tool && typeof (tool as any).setRefResolver === 'function') {
-				(tool as any).setRefResolver(this.refResolver);
-			}
 			
 			// Execute the tool
 			const result = await tool.execute(action.request.params, this.page);

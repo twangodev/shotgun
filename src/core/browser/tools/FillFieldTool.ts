@@ -16,7 +16,6 @@
 
 import {Page} from 'playwright';
 import {BrowserTool, BrowserToolResult, BrowserToolErrorType} from './types';
-import {RefResolver} from '../RefResolver';
 
 export interface FillFieldParams {
 	ref?: string;           // Element ref from snapshot
@@ -34,7 +33,6 @@ export interface FillFieldParams {
 export class FillFieldTool implements BrowserTool<FillFieldParams, BrowserToolResult> {
 	name = 'fill_field';
 	description = 'Fill a form field with a value';
-	private refResolver?: RefResolver;
 	
 	async execute(params: FillFieldParams, page: Page): Promise<BrowserToolResult> {
 		try {
@@ -42,15 +40,7 @@ export class FillFieldTool implements BrowserTool<FillFieldParams, BrowserToolRe
 			
 			// Priority 1: Use aria-ref selector if ref is provided
 			if (params.ref) {
-				// Validate ref exists in current snapshot
-				const snapshot = await this.getPageSnapshot(page);
-				if (snapshot && !snapshot.includes(`[ref=${params.ref}]`)) {
-					throw new Error(
-						`Ref ${params.ref} not found in current page snapshot. ` +
-						`Element may have been removed or page changed.`
-					);
-				}
-				
+				// Use the aria-ref selector (from playwright-mcp)
 				locator = page.locator(`aria-ref=${params.ref}`);
 			}
 			// Priority 2: Use CSS selector
@@ -80,25 +70,10 @@ export class FillFieldTool implements BrowserTool<FillFieldParams, BrowserToolRe
 				message: `Failed to fill field: ${error}`,
 				error: {
 					message: String(error),
+					recoverable: true,
 					type: BrowserToolErrorType.ELEMENT_NOT_FOUND
 				}
 			};
-		}
-	}
-	
-	private async getPageSnapshot(page: Page): Promise<string> {
-		try {
-			// Use Playwright's internal snapshot method
-			const pageEx = page as any;
-			if (pageEx._snapshotForAI) {
-				return await pageEx._snapshotForAI();
-			}
-			// Fallback to accessibility snapshot
-			const snapshot = await page.accessibility.snapshot();
-			return JSON.stringify(snapshot);
-		} catch (error) {
-			console.warn('Could not get page snapshot for validation:', error);
-			return '';
 		}
 	}
 	
@@ -116,9 +91,5 @@ export class FillFieldTool implements BrowserTool<FillFieldParams, BrowserToolRe
 		// Don't require confirmation for basic field fills
 		// Could add logic here for sensitive fields (SSN, password, etc.)
 		return false;
-	}
-	
-	setRefResolver(resolver: RefResolver): void {
-		this.refResolver = resolver;
 	}
 }

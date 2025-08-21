@@ -5,39 +5,33 @@ import {UserProfile} from '../profile';
 import {AI_MODEL, AI_CONFIG} from './config';
 
 /**
- * Lean AI decision engine for page analysis
- * Back to structured outputs - simpler and more predictable than tool calling
+ * Lean AI decision engine - just generates actions
+ * No analysis, no metadata, just "what to do next"
  */
 export class DecisionEngine {
-	private conversationHistory: Array<{
-		role: 'user' | 'assistant';
-		content: string;
-		timestamp: Date;
-	}> = [];
-	
 	constructor(private profile: UserProfile) {}
 	
 	/**
-	 * Analyze a page snapshot and determine what actions to take
+	 * Analyze a page and return actions to take
+	 * Empty array means complete
 	 */
 	async analyzePage(snapshot: PageSnapshot, retryCount = 3): Promise<PageAnalysis> {
 		const systemPrompt = this.buildSystemPrompt();
 		const userPrompt = this.buildUserPrompt(snapshot);
 		
-		// Store in conversation history
-		this.conversationHistory.push({
-			role: 'user',
-			content: userPrompt,
-			timestamp: new Date(),
-		});
-		
 		let lastError: Error | null = null;
 		
 		for (let attempt = 1; attempt <= retryCount; attempt++) {
 			try {
-				console.log(`🤖 AI Analysis Attempt ${attempt}/${retryCount}:`);
-				console.log('System Prompt:', systemPrompt.substring(0, 200) + '...');
-				console.log('User Prompt:', userPrompt.substring(0, 300) + '...');
+				console.log(`🤖 AI Analysis Attempt ${attempt}/${retryCount}`);
+				
+				// Log full snapshot for debugging
+				if (attempt === 1) {
+					console.log('📸 Full snapshot:');
+					console.log('=' .repeat(80));
+					console.log(userPrompt);
+					console.log('=' .repeat(80));
+				}
 				
 				const result = await generateObject({
 					model: AI_MODEL,
@@ -47,226 +41,95 @@ export class DecisionEngine {
 					...AI_CONFIG,
 				});
 				
-				console.log('✅ AI Response Success:');
-				console.log(JSON.stringify(result.object, null, 2));
-				
-				// Store AI response in history
-				this.conversationHistory.push({
-					role: 'assistant',
-					content: JSON.stringify(result.object),
-					timestamp: new Date(),
-				});
-				
+				console.log('✅ AI Response:', JSON.stringify(result.object, null, 2));
 				return result.object;
+				
 			} catch (error) {
 				lastError = error instanceof Error ? error : new Error(String(error));
-				
-				console.error(`❌ AI analysis attempt ${attempt}/${retryCount} failed:`);
-				console.error('Error details:', {
-					message: lastError.message,
-					name: lastError.name,
-					stack: lastError.stack?.split('\n').slice(0, 3).join('\n'),
-				});
-				
-				// Try to extract and log the raw response if available
-				if (error && typeof error === 'object') {
-					console.log('🔍 Full error object:');
-					console.log(JSON.stringify(error, null, 2));
-					
-					// Check for common properties where response might be stored
-					if ('response' in error) {
-						console.log('📄 Raw AI Response found:');
-						console.log(JSON.stringify((error as any).response, null, 2));
-					}
-					if ('data' in error) {
-						console.log('📄 Error data:');
-						console.log(JSON.stringify((error as any).data, null, 2));
-					}
-					if ('cause' in error) {
-						console.log('📄 Error cause:');
-						console.log(JSON.stringify((error as any).cause, null, 2));
-					}
-				}
+				console.error(`❌ Attempt ${attempt} failed:`, lastError.message);
 				
 				if (attempt < retryCount) {
-					// Exponential backoff
-					const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-					await this.delay(delay);
+					await this.delay(Math.min(1000 * Math.pow(2, attempt - 1), 5000));
 				}
 			}
 		}
-		
-		// All attempts failed
-		console.error('All AI analysis attempts failed:', {
-			error: lastError?.message,
-			attempts: retryCount,
-			snapshot: { url: snapshot.url, title: snapshot.title },
-		});
 		
 		throw new Error(`AI analysis failed after ${retryCount} attempts: ${lastError?.message || 'Unknown error'}`);
 	}
 	
 	/**
-	 * Build the system prompt that defines the AI's role and capabilities
+	 * Build the system prompt - focused on action generation
 	 */
 	private buildSystemPrompt(): string {
-		return `You are an expert job application automation agent. Your role is to:
+		return `You are a browser automation agent that fills out job application forms.
 
-1. Analyze web pages to understand their structure and purpose
-2. Identify job application forms and their fields
-3. Map form fields to user profile data intelligently
-4. Determine the sequence of actions needed to complete applications
-5. Recognize when human intervention is required (CAPTCHAs, complex questions, etc.)
+Your ONLY job is to output a list of actions to take on the current page.
 
-Key principles:
-- Be confident in standard form fields (name, email, phone, etc.)
-- Be cautious with ambiguous fields or questions requiring human judgment
-- Always provide clear reasoning for your decisions
-- Identify the most efficient path through multi-step forms
-- Detect and handle edge cases (login requirements, errors, etc.)
+CRITICAL RULES:
+1. ALWAYS FILL OUT THE FORM - DO NOT STOP FOR reCAPTCHA BADGES
+2. reCAPTCHA badges/logos are PASSIVE - they don't block form filling
+3. Fill EVERY field you can with the user's data
+4. For yes/no questions about work authorization, visa, etc - answer honestly based on profile
+5. For demographic questions - you can select "Prefer not to answer" if available
+6. Empty actions array = form is complete/submitted
 
-You work with accessibility snapshots that include ref attributes for element targeting.
-Each element can be targeted using its [ref=X] attribute for reliable interaction.
+ONLY use human_intervention in these RARE cases:
+- An ACTIVE CAPTCHA challenge popup appears (not just a badge)
+- A question has NO reasonable answer from the profile
+- You get an error after trying to submit
 
-Remember: You're helping automate repetitive form filling while ensuring accuracy and respecting the application process.`;
+DO NOT USE human_intervention for:
+- reCAPTCHA badges or logos
+- Work authorization questions (answer based on profile)
+- Demographic questions (select "prefer not to answer")
+- Any field that can be filled from profile data
+
+ALWAYS:
+- Fill ALL fields first
+- Click submit/continue after filling everything
+- Let the human handle CAPTCHA only if it blocks submission
+
+Actions available:
+- fill_field: {ref: "e5", value: "text"}
+- select: {ref: "e10", value: "option"}
+- checkbox: {ref: "e12", checked: true/false}
+- click: {ref: "e14"}
+- upload: {ref: "e15", filePath: "/path/to/file"}
+- human_intervention: {reason: "captcha"}
+
+Be efficient. Only include necessary actions.`;
 	}
 	
 	/**
-	 * Build the user prompt with page context and profile data
+	 * Build the user prompt with snapshot and profile
 	 */
 	private buildUserPrompt(snapshot: PageSnapshot): string {
-		return `Analyze this job application page and determine the best actions to take.
+		return `Current page:
+URL: ${snapshot.url}
+Title: ${snapshot.title}
 
-Page Information:
-- URL: ${snapshot.url}
-- Title: ${snapshot.title}
-- Has File Upload: ${snapshot.hasFileUpload}
+User profile:
+Name: ${this.profile.personal.firstName} ${this.profile.personal.lastName}
+Email: ${this.profile.personal.email}
+Phone: ${this.profile.personal.phone}
+Location: ${this.profile.personal.location.city}, ${this.profile.personal.location.state}
+Current Role: ${this.profile.professional.currentTitle}
+Years Experience: ${this.profile.professional.yearsExperience}
+Skills: ${this.profile.professional.skills.slice(0, 5).join(', ')}
+Work Authorization: ${this.profile.professional.workAuthorization || 'Authorized to work in the US'}
+Requires Visa Sponsorship: No
+Resume: /Users/jding/Documents/resume.pdf
 
-User Profile Summary:
-- Name: ${this.profile.personal.firstName} ${this.profile.personal.lastName}
-- Email: ${this.profile.personal.email}
-- Phone: ${this.profile.personal.phone}
-- Location: ${this.profile.personal.location.city}, ${this.profile.personal.location.state}
-- Current Role: ${this.profile.professional.currentRole}
-- Years of Experience: ${this.profile.professional.yearsOfExperience}
-- Skills: ${this.profile.professional.skills.slice(0, 5).join(', ')}
-- Resume Path: /Users/jding/Documents/resume.pdf (use this exact path for upload actions)
+For demographic questions, select "Prefer not to answer" when available.
 
-Accessibility Snapshot:
+Page snapshot:
 ${snapshot.ariaSnapshot}
 
-Instructions:
-1. Identify what type of page this is
-2. Check existing field values in the snapshot - DO NOT refill fields that already have correct values
-3. Map ONLY empty/incorrect fields to the appropriate profile data
-4. Determine the sequence of actions to complete the form
-5. For file uploads: 
-   - Check if file is already uploaded (look for filename like "resume.pdf" in the UI)
-   - Only upload if no file is shown or upload failed
-   - Use 'upload' tool with the button's ref - it will find the associated file input automatically
-   - IMPORTANT: Always include 'filePath' in params: { ref: "e150", filePath: "/Users/jding/Documents/resume.pdf" }
-6. CRITICAL: After all required fields are filled, CLICK the submit/continue button
-   - Look for buttons with text like "Continue", "Submit", "Next", "Apply Now"
-   - If button is disabled, check what's missing
-   - If button is enabled and all fields are filled, CLICK IT to proceed
-7. Only mark interventionRequired=true for CAPTCHAs or complex questions
-8. Provide confidence scores and reasoning for all decisions
-9. DO NOT repeat the same actions - if fields are already filled correctly, move to the next step
-
-Return a comprehensive analysis with specific actions to take.`;
+What actions should I take? Return empty array if page is complete/submitted.`;
 	}
 	
 	/**
-	 * Re-analyze a page after taking actions to determine next steps
-	 */
-	async reanalyzePage(
-		snapshot: PageSnapshot,
-		previousAnalysis: PageAnalysis,
-		executionResult: {success: boolean; error?: string},
-	): Promise<PageAnalysis> {
-		const systemPrompt = this.buildSystemPrompt();
-		const userPrompt = `Re-analyze this page after taking actions.
-
-Previous Analysis:
-- Page Type: ${previousAnalysis.pageType}
-- Actions Attempted: ${previousAnalysis.requiredActions.length}
-- Execution Result: ${executionResult.success ? 'Success' : `Failed: ${executionResult.error}`}
-
-Current Page State:
-- URL: ${snapshot.url}
-- Title: ${snapshot.title}
-
-Accessibility Snapshot:
-${snapshot.ariaSnapshot}
-
-Determine:
-1. Did the page change as expected?
-2. Are we on a new step of the application?
-3. What actions should be taken next?
-4. Are there any errors or issues to address?
-5. Is the application complete?
-
-Provide updated analysis and next actions.`;
-		
-		try {
-			const result = await generateObject({
-				model: AI_MODEL,
-				schema: PageAnalysisSchema,
-				system: systemPrompt,
-				prompt: userPrompt,
-				...AI_CONFIG,
-			});
-			
-			return result.object;
-		} catch (error) {
-			console.error('Failed to re-analyze page:', error);
-			throw new Error(`AI re-analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-		}
-	}
-	
-	/**
-	 * Get a human-readable summary of the analysis
-	 */
-	formatAnalysisSummary(analysis: PageAnalysis): string {
-		const lines = [
-			`📄 Page Type: ${analysis.pageType}`,
-			`📊 Confidence: ${(analysis.confidence.overall * 100).toFixed(0)}%`,
-			``,
-			`📝 ${analysis.pageContext.description}`,
-			``,
-		];
-		
-		if (analysis.formSections && analysis.formSections.length > 0) {
-			lines.push(`Form Sections Found:`);
-			analysis.formSections.forEach(section => {
-				lines.push(`  • ${section}`);
-			});
-			lines.push(``);
-		}
-		
-		if (analysis.requiredActions.length > 0) {
-			lines.push(`Actions to Take (${analysis.requiredActions.length}):`);
-			analysis.requiredActions.slice(0, 5).forEach((action, i) => {
-				lines.push(`  ${i + 1}. ${action.description} (${action.toolName})`);
-			});
-			if (analysis.requiredActions.length > 5) {
-				lines.push(`  ... and ${analysis.requiredActions.length - 5} more`);
-			}
-			lines.push(``);
-		}
-		
-		if (analysis.interventionRequired.needed) {
-			lines.push(`⚠️ Human Intervention Required: ${analysis.interventionRequired.reason}`);
-			lines.push(``);
-		}
-		
-		lines.push(`Next: ${analysis.nextSteps.expectedOutcome}`);
-		
-		return lines.join('\n');
-	}
-	
-	/**
-	 * Delay utility for retry logic
+	 * Delay utility
 	 */
 	private delay(ms: number): Promise<void> {
 		return new Promise(resolve => setTimeout(resolve, ms));

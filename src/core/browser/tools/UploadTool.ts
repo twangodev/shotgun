@@ -40,7 +40,7 @@ export class UploadTool implements BrowserTool<UploadParams, BrowserToolResult> 
 			
 			// Strategy 1: Try the ref directly (might be the file input itself)
 			if (params.ref) {
-				// Use the aria-ref selector (from playwright-mcp)
+				// Use aria-ref locator (Playwright's internal snapshot reference system)
 				const refLocator = page.locator(`aria-ref=${params.ref}`);
 				const tagName = await refLocator.evaluate(el => el.tagName.toLowerCase()).catch(() => null);
 				

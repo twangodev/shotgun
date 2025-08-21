@@ -4,7 +4,7 @@ import {CommandEvent} from '../events';
 import {SnapshotManager} from '../browser/snapshot';
 import {BrowserToolRegistry, BrowserActionRequest} from '../browser/tools';
 import {BrowserActionScheduler} from '../browser/scheduler/BrowserActionScheduler';
-import {DecisionEngine, PageAnalysis, BrowserToolCall} from '../ai';
+import {DecisionEngine, PageAnalysis, BrowserAction} from '../ai';
 
 /**
  * Barrier actions that require re-evaluation after execution
@@ -29,18 +29,17 @@ const BATCHABLE_ACTIONS = new Set([
 	'radio',           // Radio button selection
 	'scroll',          // Scrolling
 	'wait',            // Waiting
-	'snapshot'         // Taking snapshots
 ]);
 
 interface ExecutionBatch {
-	actions: BrowserToolCall[];
+	actions: BrowserAction[];
 	hasBarrier: boolean;
 	barrierIndex?: number;
 }
 
 /**
- * Job Application Agent - Hybrid Batching Approach
- * Batches similar actions together, breaks at significant DOM changes
+ * Job Application Agent - Simplified with action-only approach
+ * Just executes actions until none left or human intervention needed
  */
 export class JobApplicationAgent {
 	private decisionEngine: DecisionEngine;
@@ -85,40 +84,36 @@ export class JobApplicationAgent {
 			yield {type: 'progress', message: `📍 Navigating to ${url}...`};
 			await page.goto(url, {waitUntil: 'networkidle'});
 
-			// Main hybrid loop
+			// Main loop - just execute actions until done
 			let completed = false;
 			let turnCount = 0;
 			let totalActionsExecuted = 0;
-			const executionLog: Array<{turn: number; batch: string[]; success: boolean}> = [];
+			const executionLog: Array<{turn: number; actions: string[]; success: boolean}> = [];
 
 			while (!completed && turnCount < this.config.maxTurns) {
 				turnCount++;
 				
-				// OBSERVE: Take snapshot
+				// Take snapshot
 				this.log(`\n━━━ Turn ${turnCount} ━━━`);
 				yield {type: 'progress', message: `🔍 Turn ${turnCount}: Analyzing page...`};
 				const snapshot = await snapshotManager.createFullSnapshot();
 
-				// ANALYZE: Get AI decision
-				const analysis = await this.getAIAnalysis(
-					snapshot, 
-					turnCount, 
-					executionLog
-				);
+				// Get actions from AI
+				const analysis = await this.getAIAnalysis(snapshot);
 				
 				if (!analysis) {
 					yield {type: 'error', error: 'AI analysis failed'};
 					break;
 				}
+				
+				// Log what AI decided
+				this.log(`📝 AI generated ${analysis.actions.length} actions`);
+				if (analysis.actions.length > 0) {
+					this.log('Actions:', analysis.actions.map(a => `${a.tool}(${a.params.ref || ''})`).join(', '));
+				}
 
-				// Show AI's plan
-				yield {
-					type: 'message',
-					content: this.decisionEngine.formatAnalysisSummary(analysis)
-				};
-
-				// Check completion
-				if (this.isComplete(analysis)) {
+				// Check if complete (empty actions array)
+				if (analysis.actions.length === 0) {
 					completed = true;
 					yield {
 						type: 'completed',
@@ -126,37 +121,42 @@ export class JobApplicationAgent {
 							url,
 							title: snapshot.title,
 							turnsRequired: turnCount,
-							totalActions: totalActionsExecuted,
-							confidence: analysis.confidence.overall
+							totalActions: totalActionsExecuted
 						}
+					};
+					yield {
+						type: 'message',
+						content: '🎉 Application completed! Browser will remain open for debugging.'
 					};
 					break;
 				}
 
 				// Check for human intervention
-				if (analysis.interventionRequired.needed) {
+				const needsHuman = analysis.actions.find(a => a.tool === 'human_intervention');
+				if (needsHuman) {
+					this.log('🚫 AI requested human intervention:', needsHuman.params.reason);
 					yield {
 						type: 'message',
-						content: `⚠️ Human needed: ${analysis.interventionRequired.reason}`
+						content: `⚠️ Human needed: ${needsHuman.params.reason || 'Manual intervention required'}`
 					};
 					break;
 				}
 
-				// EXECUTE: Process actions in smart batches
-				const batch = this.createExecutionBatch(analysis.requiredActions);
-				
-				if (batch.actions.length === 0) {
-					yield {type: 'message', content: '❓ No actions to execute'};
-					break;
-				}
+				// Show what we're doing
+				yield {
+					type: 'message',
+					content: `📋 ${analysis.actions.length} actions to execute`
+				};
 
+				// Execute actions in batches
+				const batch = this.createExecutionBatch(analysis.actions);
+				
 				this.log(`📦 Batch: ${batch.actions.length} actions, barrier: ${batch.hasBarrier}`);
 				
 				// Execute the batch
 				const batchResult = await this.executeBatch(
 					batch,
 					scheduler,
-					analysis,
 					page
 				);
 
@@ -164,7 +164,7 @@ export class JobApplicationAgent {
 				totalActionsExecuted += batchResult.executed;
 				executionLog.push({
 					turn: turnCount,
-					batch: batchResult.actions,
+					actions: batchResult.actions,
 					success: batchResult.success
 				});
 
@@ -207,10 +207,9 @@ export class JobApplicationAgent {
 			};
 		} finally {
 			if (browser) {
-				// Wait 30 seconds before closing to see the result
-				console.log('⏳ Waiting 30 seconds before closing browser...');
-				await this.delay(30000);
-				await browser.close();
+				// Keep browser open for debugging
+				console.log('🔍 Browser remains open for debugging. Close manually when done.');
+				// await browser.close(); // Commented out for debugging
 			}
 		}
 	}
@@ -219,7 +218,7 @@ export class JobApplicationAgent {
 	 * Create a smart batch of actions to execute
 	 * Batches all actions up to and including the first barrier
 	 */
-	private createExecutionBatch(actions: BrowserToolCall[]): ExecutionBatch {
+	private createExecutionBatch(actions: BrowserAction[]): ExecutionBatch {
 		const batch: ExecutionBatch = {
 			actions: [],
 			hasBarrier: false
@@ -230,15 +229,15 @@ export class JobApplicationAgent {
 			batch.actions.push(action);
 
 			// If this is a barrier action, stop here
-			if (BARRIER_ACTIONS.has(action.toolName)) {
+			if (BARRIER_ACTIONS.has(action.tool)) {
 				batch.hasBarrier = true;
 				batch.barrierIndex = i;
 				break;
 			}
 
 			// Continue batching if it's batchable
-			if (!BATCHABLE_ACTIONS.has(action.toolName)) {
-				this.log(`⚠️ Unknown action type: ${action.toolName}, treating as barrier`);
+			if (!BATCHABLE_ACTIONS.has(action.tool)) {
+				this.log(`⚠️ Unknown action type: ${action.tool}, treating as barrier`);
 				batch.hasBarrier = true;
 				batch.barrierIndex = i;
 				break;
@@ -254,7 +253,6 @@ export class JobApplicationAgent {
 	private async executeBatch(
 		batch: ExecutionBatch,
 		scheduler: BrowserActionScheduler,
-		analysis: PageAnalysis,
 		page: Page
 	): Promise<{
 		executed: number;
@@ -274,15 +272,19 @@ export class JobApplicationAgent {
 		};
 
 		for (const action of batch.actions) {
-			this.log(`  🔧 Executing: ${action.toolName} - ${action.description}`);
+			this.log(`  🔧 Executing: ${action.tool} - ${JSON.stringify(action.params)}`);
 			
-			// Create request with enhanced params
-			const request = this.createActionRequest(action, analysis);
+			// Convert to legacy format for compatibility
+			const request: BrowserActionRequest = {
+				id: `${Date.now()}-${Math.random()}`,
+				toolName: action.tool,
+				params: action.params
+			};
 			
 			// Add progress update
 			result.updates.push({
 				type: 'progress',
-				message: `⚡ ${action.description}`
+				message: `⚡ ${action.tool}: ${this.getActionDescription(action)}`
 			});
 
 			// Execute
@@ -294,15 +296,20 @@ export class JobApplicationAgent {
 			}
 
 			result.executed++;
-			result.actions.push(action.toolName);
+			result.actions.push(action.tool);
 
 			// Check result
 			if (trackedAction.state === 'error') {
 				result.success = false;
 				result.error = trackedAction.result?.message;
 				
+				// Log the error details for debugging
+				this.log(`  ❌ Action failed: ${action.tool} on ${action.params.ref}`);
+				this.log(`     Error: ${result.error}`);
+				this.log(`     Params:`, action.params);
+				
 				// Determine if critical
-				if (BARRIER_ACTIONS.has(action.toolName)) {
+				if (BARRIER_ACTIONS.has(action.tool)) {
 					result.critical = true;
 					result.updates.push({
 						type: 'message',
@@ -312,19 +319,19 @@ export class JobApplicationAgent {
 				} else {
 					result.updates.push({
 						type: 'message',
-						content: `⚠️ Non-critical failure: ${result.error}`
+						content: `⚠️ Non-critical failure on ${action.params.ref}: ${result.error}`
 					});
 					// Continue with other actions
 				}
 			} else {
 				result.updates.push({
 					type: 'progress',
-					message: `✅ ${action.description}`
+					message: `✅ ${action.tool} completed`
 				});
 			}
 
 			// If this was a barrier action and it succeeded, we're done with this batch
-			if (BARRIER_ACTIONS.has(action.toolName) && trackedAction.state === 'success') {
+			if (BARRIER_ACTIONS.has(action.tool) && trackedAction.state === 'success') {
 				this.log(`  🚧 Barrier action completed, breaking for re-evaluation`);
 				break;
 			}
@@ -336,30 +343,9 @@ export class JobApplicationAgent {
 	/**
 	 * Get AI analysis for current page state
 	 */
-	private async getAIAnalysis(
-		snapshot: any,
-		turnCount: number,
-		executionLog: Array<any>
-	): Promise<PageAnalysis | null> {
+	private async getAIAnalysis(snapshot: any): Promise<PageAnalysis | null> {
 		try {
-			// For first turn, do initial analysis
-			if (turnCount === 1) {
-				return await this.decisionEngine.analyzePage(snapshot);
-			}
-
-			// For subsequent turns, provide context
-			const lastExecution = executionLog[executionLog.length - 1];
-			const context = {
-				success: lastExecution?.success ?? true,
-				error: lastExecution?.error,
-				actionsExecuted: lastExecution?.batch ?? []
-			};
-
-			// Re-analyze with context
-			// Note: We're passing null for previousAnalysis since we don't store it
-			// In production, you'd want to store and pass the previous analysis
 			return await this.decisionEngine.analyzePage(snapshot);
-			
 		} catch (error) {
 			console.error('AI analysis error:', error);
 			return null;
@@ -367,55 +353,23 @@ export class JobApplicationAgent {
 	}
 
 	/**
-	 * Create action request with enhanced parameters
+	 * Get human-readable description for an action
 	 */
-	private createActionRequest(
-		action: BrowserToolCall,
-		analysis: PageAnalysis
-	): BrowserActionRequest {
-		const enhancedParams = {...action.params};
-		
-		// Enhance fill_field with label info
-		if (action.toolName === 'fill_field' && analysis.fieldMappings) {
-			const mapping = analysis.fieldMappings.find(m => m.ref === action.params.ref);
-			if (mapping?.label) {
-				enhancedParams.label = mapping.label;
-			}
+	private getActionDescription(action: BrowserAction): string {
+		switch (action.tool) {
+			case 'fill_field':
+				return `Fill ${action.params.ref} with "${action.params.value?.substring(0, 20)}..."`;
+			case 'click':
+				return `Click ${action.params.ref}`;
+			case 'select':
+				return `Select "${action.params.value}" in ${action.params.ref}`;
+			case 'checkbox':
+				return `${action.params.checked ? 'Check' : 'Uncheck'} ${action.params.ref}`;
+			case 'upload':
+				return `Upload file to ${action.params.ref}`;
+			default:
+				return JSON.stringify(action.params);
 		}
-		
-		// Enhance upload action with file path from fieldMappings
-		if (action.toolName === 'upload' && analysis.fieldMappings) {
-			const mapping = analysis.fieldMappings.find(m => m.ref === action.params.ref);
-			if (mapping?.value && !enhancedParams.filePath) {
-				// Use the value from fieldMapping if filePath is not provided
-				enhancedParams.filePath = mapping.value;
-			}
-			// Also ensure we have a default path if still missing
-			if (!enhancedParams.filePath) {
-				// Hardcoded path for testing - update this to your actual resume path
-				enhancedParams.filePath = '/Users/jding/Documents/resume.pdf';
-			}
-		}
-
-		return {
-			id: `${Date.now()}-${Math.random()}`,
-			toolName: action.toolName,
-			params: enhancedParams,
-			reasoning: action.reasoning,
-			confidence: action.confidence
-		};
-	}
-
-	/**
-	 * Check if application is complete
-	 */
-	private isComplete(analysis: PageAnalysis): boolean {
-		return (
-			analysis.nextSteps.expectedOutcome.toLowerCase().includes('complete') ||
-			analysis.nextSteps.expectedOutcome.toLowerCase().includes('submitted') ||
-			analysis.pageType === 'confirmation_page' ||
-			(analysis.requiredActions.length === 0 && analysis.confidence.overall > 0.8)
-		);
 	}
 
 	/**

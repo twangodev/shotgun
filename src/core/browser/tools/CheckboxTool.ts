@@ -24,7 +24,7 @@ export class CheckboxTool implements BrowserTool<CheckboxParams, BrowserToolResu
 			
 			// Strategy 1: Try ref attribute (from snapshot)
 			if (params.ref) {
-				element = page.locator(`[aria-ref="${params.ref}"]`);
+				element = page.locator(`aria-ref=${params.ref}`);
 				const count = await element.count();
 				if (count === 0) {
 					element = null;

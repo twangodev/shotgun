@@ -41,9 +41,9 @@ export class ClickTool implements BrowserTool<ClickParams, BrowserToolResult> {
 		try {
 			let locator;
 			
-			// Priority 1: Use aria-ref selector if ref is provided
+			// Priority 1: Use ref attribute selector if ref is provided
 			if (params.ref) {
-				// Use the aria-ref selector (from playwright-mcp)
+				// Use aria-ref locator (Playwright's internal snapshot reference system)
 				locator = page.locator(`aria-ref=${params.ref}`);
 			}
 			// Priority 2: Use CSS selector
